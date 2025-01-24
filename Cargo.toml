@@ -1,0 +1,19 @@
+[package]
+name = "gchat"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "=1.36", features = ["full"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+url = "2.5"
+tungstenite = "0.26.1"
+
+[[bin]]
+name = "server"
+path = "src/server.rs"
+
+[[bin]]
+name = "client"
+path = "src/client.rs"
