@@ -1,22 +1,44 @@
-use std::{net::TcpListener, thread::spawn};
-use tungstenite::accept;
+use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::{accept_async, connect_async, tungstenite::Message};
+use tokio::net::TcpStream;
+use tokio::net::TcpListener;
+use tokio::sync::mpsc;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio_tungstenite::WebSocketStream;
 
-fn main() {
-    let server = TcpListener::bind("127.0.0.1:3012").unwrap();
-    for stream in server.incoming() {
-        dbg!("New connection opened");
-        spawn ( move || {
-            let mut websocket = accept(stream.unwrap()).unwrap();
-            loop {
+#[tokio::main]
+async fn main(){
+    let server = TcpListener::bind("127.0.0.1:3012").await.unwrap();
+    while let Ok((stream, addr)) = server.accept().await {
+        
+        
+        tokio::spawn(async move {
+            let mut websocket = accept_async(stream).await.unwrap();
+            
+                loop {
 
-                let msg = websocket.read().unwrap();
+                let message = websocket.next().await.unwrap();
 
-                // We do not want to send back ping/pong messages.
-                if msg.is_binary() || msg.is_text() {
-                    println!("[Received]: {}", msg);
-                    //websocket.send(msg).unwrap();
+
+                match message {
+                    Ok(msg) => {
+                        println!("[Broadcasting]: {}", msg);
+                        let message_content = msg.to_string();
+
+                            if let Err(e) = websocket.send(Message::Text(message_content.clone())).await {
+                                println!("Error sending message to a client: {}", e);
+                            }
+                    },
+
+                    Err(e) => {
+                        println!("Error reading message");
+                    }
+                
+                } 
+            
                 }
-            }
         });
+    
     }
 }
