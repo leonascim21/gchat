@@ -2,8 +2,6 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use futures_util::{SinkExt, StreamExt};
 use tokio::io::AsyncBufReadExt;
-use url::Url;
-use tokio::net::TcpStream;
 
 #[tokio::main]
 async fn main() {
@@ -21,10 +19,10 @@ async fn main() {
         println!("* {header}");
     }
 
-    // Thread for sending messages
+    // Async block for sending messages
     let tx_clone = tx.clone();
     tokio::spawn( async move {
-        let mut stdin = tokio::io::stdin();
+        let stdin = tokio::io::stdin();
         let mut reader = tokio::io::BufReader::new(stdin);
         let mut buffer = String::new();
 
@@ -33,7 +31,6 @@ async fn main() {
             reader.read_line(&mut buffer).await
                 .expect("Failed to read message.");
             tx_clone.send(buffer.clone()).await.unwrap();
-            //socket.send(Message::Text(message.into())).unwrap();
         }
     });
     
