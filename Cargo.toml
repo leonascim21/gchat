@@ -9,6 +9,9 @@ tokio-tungstenite = "0.21"
 futures-util = "0.3"
 url = "2.5"
 tungstenite = "0.26.1"
+tokio-rustls = "0.24"
+rustls = "0.21"
+rustls-pemfile = "1.0"
 
 [[bin]]
 name = "server"
