@@ -44,12 +44,12 @@ async fn main(){
     let(tx, mut _rx) = broadcast::channel::<String>(100);
 
     while let Ok((stream, _addr)) = server.accept().await {
-        
+        let acceptor = acceptor.clone();
         let tx_clone = tx.clone();
         
         tokio::spawn(async move {
             let tls_stream = acceptor.accept(stream).await.unwrap();
-            let mut websocket = accept_async(stream).await.unwrap();
+            let mut websocket = accept_async(tls_stream).await.unwrap();
             let mut rx = tx_clone.subscribe();
                 
             loop {
