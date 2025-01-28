@@ -29,8 +29,8 @@ fn load_private_key(path: &str) -> PrivateKey {
 #[tokio::main]
 async fn main(){
     // TLS configuration
-    let certs = load_certs("/path/to/your/cert.pem");
-    let key = load_private_key("/path/to/your/private.key");
+    let certs = load_certs("/etc/letsencrypt/live/ws.gchat.cloud/fullchain.pem");
+    let key = load_private_key("/etc/letsencrypt/live/ws.gchat.cloud/privkey.pem");
     
     let config = ServerConfig::builder()
         .with_safe_defaults()
