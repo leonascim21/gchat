@@ -63,12 +63,13 @@ async fn main(){
     let(tx, mut _rx) = broadcast::channel::<String>(100);
 
     // Shared DB state
-    let state = ServerState { db: pool, tx };
+    let state = ServerState { db: pool, tx: tx.clone() };
     let state = std::sync::Arc::new(state);
 
     while let Ok((stream, _addr)) = server.accept().await {
         let acceptor = acceptor.clone();
         let tx_clone = tx.clone();
+        let state = state.clone(); // Lightweight since state is wrapped in Arc
         
         tokio::spawn(async move {
             let tls_stream = acceptor.accept(stream).await.unwrap();
