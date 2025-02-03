@@ -12,6 +12,8 @@ tungstenite = "0.26.1"
 tokio-rustls = "0.24"
 rustls = "0.21"
 rustls-pemfile = "1.0"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "time"] }
+dotenv = "0.15"
 
 [[bin]]
 name = "server"

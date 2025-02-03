@@ -3,6 +3,8 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 use tokio::select;
+use sqlx::postgres::PgPoolOptions;
+use dotenv::dotenv;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -26,22 +28,43 @@ fn load_private_key(path: &str) -> PrivateKey {
     PrivateKey(keys[0].clone())
 }
 
+struct ServerState {
+    db: sqlx::PgPool,
+    tx: broadcast::Sender<String>,
+}
+
 #[tokio::main]
 async fn main(){
+    dotenv().ok();
+
     // TLS configuration
     let certs = load_certs("/etc/letsencrypt/live/ws.gchat.cloud/fullchain.pem");
     let key = load_private_key("/etc/letsencrypt/live/ws.gchat.cloud/privkey.pem");
-    
+
+    let db_url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set");
+
     let config = ServerConfig::builder()
         .with_safe_defaults()
         .with_no_client_auth()
         .with_single_cert(certs, key)
         .expect("Failed to create TLS config");
+
+    // DB connection pool
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await
+        .expect("Failed to create pool");
     
     let acceptor = TlsAcceptor::from(std::sync::Arc::new(config));
 
     let server = TcpListener::bind("0.0.0.0:3012").await.unwrap();
     let(tx, mut _rx) = broadcast::channel::<String>(100);
+
+    // Shared DB state
+    let state = ServerState { db: pool, tx };
+    let state = std::sync::Arc::new(state);
 
     while let Ok((stream, _addr)) = server.accept().await {
         let acceptor = acceptor.clone();
@@ -61,6 +84,16 @@ async fn main(){
                         Some(rec_msg) = websocket.next() => {
                             if let Ok(rec_msg) = rec_msg {
                                 println!("[Broadcasting]: {}", rec_msg);
+
+                                if let Err(e) = sqlx::query!(
+                                    "INSERT INTO messages (content) VALUES ($1)",
+                                    rec_msg.to_string()
+                                )
+                                .execute(&state.db)
+                                .await {
+                                    eprintln!("Failed to store message: {}", e);
+                                }
+
                                 tx_clone.send(rec_msg.to_string());
                             }
                         }
