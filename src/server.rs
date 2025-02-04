@@ -112,7 +112,7 @@ async fn main() {
         });
     }
 
-    let app = Router::new()
+    let app: Router = Router::new()
         //.route("/login", post(auth::login));
         .route("/login", get(Html("Hi there!")));
 }
