@@ -18,6 +18,7 @@ use axum::routing::get;
 use axum::routing::Router;
 use axum::response::Html;
 
+/*
 fn load_certs(path: &str) -> Vec<Certificate> {
     let cert_file = File::open(path).expect("Failed to open certificate file");
     let mut reader = BufReader::new(cert_file);
@@ -34,7 +35,7 @@ fn load_private_key(path: &str) -> PrivateKey {
     let keys = rustls_pemfile::pkcs8_private_keys(&mut reader).unwrap();
     PrivateKey(keys[0].clone())
 }
-
+*/
 struct ServerState {
     db: sqlx::PgPool,
     tx: broadcast::Sender<String>,
@@ -45,17 +46,19 @@ async fn main() {
     dotenv().ok();
 
     // TLS configuration
-    let certs = load_certs("/etc/letsencrypt/live/ws.gchat.cloud/fullchain.pem");
-    let key = load_private_key("/etc/letsencrypt/live/ws.gchat.cloud/privkey.pem");
+    //let certs = load_certs("/etc/letsencrypt/live/ws.gchat.cloud/fullchain.pem");
+    //let key = load_private_key("/etc/letsencrypt/live/ws.gchat.cloud/privkey.pem");
 
     let db_url = std::env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
 
+    /*
     let config = ServerConfig::builder()
         .with_safe_defaults()
         .with_no_client_auth()
         .with_single_cert(certs, key)
         .expect("Failed to create TLS config");
+    */
 
     // DB connection pool
     let pool = PgPoolOptions::new()
@@ -64,7 +67,7 @@ async fn main() {
         .await
         .expect("Failed to create pool");
     
-    let acceptor = TlsAcceptor::from(std::sync::Arc::new(config));
+    //let acceptor = TlsAcceptor::from(std::sync::Arc::new(config));
 
     let server = TcpListener::bind("0.0.0.0:3012").await.unwrap();
     let(tx, mut _rx) = broadcast::channel::<String>(100);
@@ -74,13 +77,14 @@ async fn main() {
     let state = std::sync::Arc::new(state);
 
     while let Ok((stream, _addr)) = server.accept().await {
-        let acceptor = acceptor.clone();
+        //let acceptor = acceptor.clone();
         let tx_clone = tx.clone();
         let state = state.clone(); // Lightweight since state is wrapped in Arc
         
         tokio::spawn(async move {
-            let tls_stream = acceptor.accept(stream).await.unwrap();
-            let mut websocket = accept_async(tls_stream).await.unwrap();
+            //let tls_stream = acceptor.accept(stream).await.unwrap();
+            //let mut websocket = accept_async(tls_stream).await.unwrap();
+            let mut websocket = accept_async(stream).await.unwrap();
             let mut rx = tx_clone.subscribe();
                 
             loop {
