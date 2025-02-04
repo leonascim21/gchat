@@ -34,7 +34,7 @@ struct ServerState {
 }
 
 #[tokio::main]
-async fn main(){
+async fn main() {
     dotenv().ok();
 
     // TLS configuration
