@@ -112,8 +112,11 @@ async fn main() {
         });
     }
 
-    let app: Router = Router::new()
+    let app = Router::new()
         //.route("/login", post(auth::login));
         .route("/login", get(Html("Hi there!")));
+
+    let http_listener = TcpListener::bind("0.0.0.0:3013").await.unwrap();
+    axum::serve(http_listener, app).await.unwrap();
 }
 
