@@ -15,7 +15,7 @@ mod routes;
 use crate::routes::auth;
 use axum::routing::post;
 use axum::routing::get;
-use axum::Router;
+use axum::routing::Router;
 use axum::response::Html;
 
 fn load_certs(path: &str) -> Vec<Certificate> {
