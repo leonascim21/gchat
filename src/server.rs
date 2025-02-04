@@ -11,6 +11,13 @@ use std::io::BufReader;
 use rustls::{Certificate, PrivateKey, ServerConfig};
 use tokio_rustls::TlsAcceptor;
 
+mod routes;
+use crate::routes::auth;
+use axum::routing::post;
+use axum::routing::get;
+use axum::Router;
+use axum::response::Html;
+
 fn load_certs(path: &str) -> Vec<Certificate> {
     let cert_file = File::open(path).expect("Failed to open certificate file");
     let mut reader = BufReader::new(cert_file);
@@ -104,5 +111,9 @@ async fn main() {
                 }
         });
     }
+
+    let app = Router::new()
+        //.route("/login", post(auth::login));
+        .route("/login", get(Html("Hi there!")));
 }
 
