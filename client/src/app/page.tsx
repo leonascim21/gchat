@@ -1,29 +1,39 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Send } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import Ping from "./_components/ping";
 
 export default function Home() {
   const [messages, setMessages] = useState<string[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket('wss://ws.gchat.cloud');
+    const ws = new WebSocket("wss://ws.gchat.cloud");
     wsRef.current = ws;
 
     ws.onopen = () => {
       setConnected(true);
-      console.log('Connected to WebSocket server');
+      console.log("Connected to WebSocket server");
     };
 
     ws.onmessage = (event) => {
-      setMessages(prev => [...prev, event.data]);
+      setMessages((prev) => [...prev, event.data]);
     };
 
     ws.onclose = () => {
       setConnected(false);
-      console.log('Disconnected from WebSocket server');
+      console.log("Disconnected from WebSocket server");
     };
 
     return () => {
@@ -35,48 +45,53 @@ export default function Home() {
     e.preventDefault();
     if (inputMessage.trim() && wsRef.current) {
       wsRef.current.send(inputMessage);
-      setInputMessage('');
+      setInputMessage("");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4">
-      <div className="max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-        <div className="p-4 bg-green-600 text-white">
+    <div className="flex flex-col justify-center items-center h-screen bg-slate-600 p-4">
+      <Card className="flex flex-col bg-slate-200 border-0 shadow-xl w-[70vw] h-[80vh] ">
+        <CardHeader className="mb-auto border-b border-slate-300">
           <h1 className="text-xl font-bold">WebSocket Chat</h1>
-          <p className="text-sm">
-            Status: {connected ? 'Connected' : 'Disconnected'}
-          </p>
-        </div>
-
-        <div className="h-[60vh] overflow-y-auto p-4 space-y-2">
-          {messages.map((message, index) => (
-            <div key={index} className="bg-green-700 p-2 rounded-lg text-white">
-              {message}
-            </div>
-          ))}
-        </div>
-
-        <form onSubmit={sendMessage} className="p-4 border-t border-gray-700">
-          <div className="flex gap-2">
-            <input
+          <div className="flex flex-row gap-3 items-center">
+            <p className="text-sm">
+              Status: {connected ? "Connected" : "Disconnected"}
+            </p>
+            <Ping connected={connected} />
+          </div>
+        </CardHeader>
+        <CardContent className="flex-grow overflow-y-auto p-4">
+          <div className="flex flex-col gap-2 items-end">
+            {messages.map((message, index) => (
+              <Card
+                key={index}
+                className="bg-slate-800 border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full"
+              >
+                {message}
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+        <CardFooter className="mt-auto border-t border-slate-300">
+          <form
+            onSubmit={sendMessage}
+            className="flex flex-row gap-2 mt-3 w-full justify-center"
+          >
+            <Input
+              className="bg-slate-100 border-slate-300 w-[60%]"
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-700 text-white border-gray-600 placeholder-gray-400"
               disabled={!connected}
             />
-            <button
-              type="submit"
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
-              disabled={!connected}
-            >
-              Send
-            </button>
-          </div>
-        </form>
-      </div>
+            <Button className="w-[5%]" disabled={!inputMessage}>
+              <Send />
+            </Button>
+          </form>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
