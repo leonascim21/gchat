@@ -51,7 +51,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col justify-center items-center h-screen bg-slate-600 md:p-4">
-      <Card className="flex flex-col bg-slate-200 border-0 shadow-xl sm:w-[100vw] sm:h-[100vh] md:w-[70vw] md:h-[80vh] ">
+      <Card className="flex flex-col bg-slate-200 border-0 shadow-xl w-screen h-screen md:w-[70vw] md:h-[80vh]">
         <CardHeader className="mb-auto border-b border-slate-300">
           <h1 className="text-xl font-bold">WebSocket Chat</h1>
           <div className="flex flex-row gap-3 items-center">
