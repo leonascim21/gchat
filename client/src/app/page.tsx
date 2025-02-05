@@ -65,20 +65,14 @@ export default function Home() {
           <div className="flex flex-col gap-2 w-full">
             {messages.map((message, index) =>
               index % 2 == 0 ? (
-                <div className="flex justify-end">
-                  <Card
-                    key={index}
-                    className="bg-slate-800 border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full"
-                  >
+                <div key={index} className="flex justify-end">
+                  <Card className="bg-slate-800 border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full">
                     {message}
                   </Card>
                 </div>
               ) : (
-                <div className="flex justify-start">
-                  <Card
-                    key={index}
-                    className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full"
-                  >
+                <div key={index} className="flex justify-start">
+                  <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full">
                     {message}
                   </Card>
                 </div>
