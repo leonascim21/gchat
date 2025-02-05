@@ -6,11 +6,7 @@ use tokio::select;
 use sqlx::postgres::PgPoolOptions;
 use dotenv::dotenv;
 
-use std::fs::File;
-use std::io::BufReader;
 use rustls::{Certificate, PrivateKey, ServerConfig};
-use tokio_rustls::TlsAcceptor;
-
 mod routes;
 use crate::routes::auth;
 use axum::routing::post;
@@ -72,9 +68,21 @@ async fn main() {
     let server = TcpListener::bind("0.0.0.0:3012").await.unwrap();
     let(tx, mut _rx) = broadcast::channel::<String>(100);
 
+    let app = Router::new()
+        .route("/login", get(Html("Hi there!")));
+    let http_server = TcpListener::bind("0.0.0.0:3013").await.unwrap();
+
     // Shared DB state
     let state = ServerState { db: pool, tx: tx.clone() };
     let state = std::sync::Arc::new(state);
+
+    tokio::join!(
+        handle_http_server(http_server, app),
+        handle_websocket_connections(server, tx, state)
+    );
+}
+
+async fn handle_websocket_connections (server: TcpListener, tx: broadcast::Sender<String>, state: std::sync::Arc<ServerState>) {
 
     while let Ok((stream, _addr)) = server.accept().await {
         //let acceptor = acceptor.clone();
@@ -115,12 +123,11 @@ async fn main() {
                 }
         });
     }
-
-    let app = Router::new()
-        //.route("/login", post(auth::login));
-        .route("/login", get(Html("Hi there!")));
-
-    let http_listener = TcpListener::bind("0.0.0.0:3013").await.unwrap();
-    axum::serve(http_listener, app).await.unwrap();
 }
 
+async fn handle_http_server(
+    listener: TcpListener,
+    app: Router
+) {
+    axum::serve(listener, app).await.unwrap();
+}
