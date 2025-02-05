@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Ping from "./_components/ping";
+import ThemeToggle from "./_components/theme-toggle";
 
 export default function Home() {
   const [messages, setMessages] = useState<string[]>([]);
@@ -51,9 +52,12 @@ export default function Home() {
 
   return (
     <div className="flex flex-col justify-center items-center h-screen bg-slate-600 md:p-4">
-      <Card className="flex flex-col bg-slate-200 border-0 shadow-xl w-screen h-screen md:w-[70vw] md:h-[80vh]">
-        <CardHeader className="mb-auto border-b border-slate-300">
-          <h1 className="text-xl font-bold">WebSocket Chat</h1>
+      <Card className="flex flex-col bg-slate-200 dark:bg-slate-700 border-0 shadow-xl w-screen h-screen md:w-[70vw] md:h-[80vh]">
+        <CardHeader className="mb-auto border-b border-slate-300 dark:border-slate-800">
+          <div className="flex flex-row justify-between">
+            <h1 className="text-xl font-bold">WebSocket Chat</h1>
+            <ThemeToggle />
+          </div>
           <div className="flex flex-row gap-3 items-center">
             <p className="text-sm">
               Status: {connected ? "Connected" : "Disconnected"}
@@ -80,13 +84,13 @@ export default function Home() {
             )}
           </div>
         </CardContent>
-        <CardFooter className="mt-auto border-t border-slate-300">
+        <CardFooter className="mt-auto border-t border-slate-300 dark:border-slate-800">
           <form
             onSubmit={sendMessage}
             className="flex flex-row gap-2 mt-3 w-full justify-center"
           >
             <Input
-              className="bg-slate-100 border-slate-300 w-[60%]"
+              className="bg-slate-100 border-slate-300 dark:bg-slate-600 dark:border-slate-800 w-[60%]"
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
