@@ -9,7 +9,7 @@ export default function Home() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket('wss://ws.gchat.cloud:3012/socket');
+    const ws = new WebSocket('wss://ws.gchat.cloud');
     wsRef.current = ws;
 
     ws.onopen = () => {
