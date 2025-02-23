@@ -10,7 +10,6 @@ import ThemeToggle from "./_components/theme-toggle";
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -94,6 +93,7 @@ export default function Home() {
     };
 
     ws.onmessage = (event) => {
+      console.log(messages);
       setMessages((prev) => [...prev, event.data]);
     };
 
