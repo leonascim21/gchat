@@ -1,14 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Menu, MessageSquare, Plus, Send } from "lucide-react";
+import { Menu, MessageSquare, Send } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Ping from "./_components/ping";
 import ThemeToggle from "./_components/theme-toggle";
@@ -23,6 +18,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import CreateChatForm from "./_components/createChatForm";
 
 const chats = [
   {
@@ -122,16 +118,7 @@ export default function Home() {
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton>
-                <Plus className="mr-2 h-4 w-4" />
-                New Chat
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+        <CreateChatForm />
         <SidebarContent>
           <SidebarMenu>
             {chats.map((chat) => (
