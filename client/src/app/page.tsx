@@ -164,7 +164,7 @@ export default function Home() {
                 ?.messages?.map((message, index) =>
                   index % 2 == 0 ? (
                     <div key={index} className="flex justify-end">
-                      <Card className="bg-slate-800 border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full">
+                      <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full">
                         {message.message}
                       </Card>
                     </div>
