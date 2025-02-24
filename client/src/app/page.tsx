@@ -147,12 +147,12 @@ export default function Home() {
                 : "Select a chat"}
             </h1>
           </div>
-          <h1 className="text-xl font-bold">GChat</h1>
+          <h1 className="text-xl font-bold invisible md:visible">GChat</h1>
           <div className="flex flex-row items-center gap-3">
-            <Ping connected={connected} />
-            <p className="text-sm">
+            <p className="text-sm invisible md:visible">
               Status: {connected ? "Connected" : "Disconnected"}
             </p>
+            <Ping connected={connected} />
             <ThemeToggle />
           </div>
         </header>
