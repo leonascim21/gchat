@@ -1,19 +1,32 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { Menu, MessageSquare, Send } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Ping from "./_components/ping";
 import ThemeToggle from "./_components/theme-toggle";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import CreateChatForm from "./_components/createChatForm";
+import { groupMessages, groups, messages, users } from "./fakeData/fakeData";
+
+const chats = groups;
+const message = messages;
+const groupMessage = groupMessages;
+const user = users;
 
 export default function Home() {
+  const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
@@ -29,6 +42,7 @@ export default function Home() {
     };
 
     ws.onmessage = (event) => {
+      console.log(messages);
       setMessages((prev) => [...prev, event.data]);
     };
 
@@ -51,46 +65,117 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col justify-center items-center h-screen bg-slate-600 md:p-4">
-      <Card className="flex flex-col bg-slate-200 dark:bg-slate-700 border-0 shadow-xl w-screen h-screen md:w-[70vw] md:h-[80vh]">
-        <CardHeader className="mb-auto border-b border-slate-300 dark:border-slate-800">
-          <div className="flex flex-row justify-between">
-            <h1 className="text-xl font-bold">WebSocket Chat</h1>
-            <ThemeToggle />
+    <SidebarProvider>
+      <Sidebar>
+        <CreateChatForm />
+        <SidebarContent>
+          <SidebarMenu>
+            {chats.map((chat) => (
+              <SidebarMenuItem key={chat.groupID}>
+                <SidebarMenuButton
+                  onClick={() => setSelectedChat(chat.groupID)}
+                  isActive={selectedChat === chat.groupID}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  {chat.group_name}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset className="flex flex-col">
+        <header className="flex flex-row h-16 items-center justify-between border-b px-6">
+          <div className="flex flex-row gap-2 items-center">
+            <SidebarTrigger>
+              <Menu className="h-6 w-6" />
+            </SidebarTrigger>
+            <h1 className="font-semibold">
+              {selectedChat
+                ? chats.find((chat) => chat.groupID === selectedChat)
+                    ?.group_name
+                : "Select a chat"}
+            </h1>
           </div>
-          <div className="flex flex-row gap-3 items-center">
-            <p className="text-sm">
+          <h1 className="text-xl font-bold invisible md:visible">GChat</h1>
+          <div className="flex flex-row items-center gap-3">
+            <p className="text-sm invisible md:visible">
               Status: {connected ? "Connected" : "Disconnected"}
             </p>
             <Ping connected={connected} />
+            <ThemeToggle />
           </div>
-        </CardHeader>
-        <CardContent className="flex-grow overflow-y-auto p-4">
+        </header>
+        <main className="flex-1 overflow-auto p-6">
           <div className="flex flex-col gap-2 w-full">
-            {messages.map((message, index) =>
-              index % 2 == 0 ? (
-                <div key={index} className="flex justify-end">
-                  <Card className="bg-slate-800 border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full">
-                    {message}
-                  </Card>
-                </div>
-              ) : (
-                <div key={index} className="flex justify-start">
-                  <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full">
-                    {message}
-                  </Card>
-                </div>
-              )
-            )}
+            {selectedChat &&
+              chats.find((chat) => chat.groupID === selectedChat)?.groupID &&
+              message
+                .filter((msg) =>
+                  groupMessage.find(
+                    (gm) =>
+                      gm.messageID === msg.messageID &&
+                      gm.groupID === selectedChat
+                  )
+                )
+                .map((message) =>
+                  message.senderID == 1 ? (
+                    <div key={message.messageID} className="flex justify-end">
+                      <div className="flex flex-col">
+                        <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full">
+                          {message.content}
+                        </Card>
+                        <p className="text-sm opacity-40 text-right pr-3">
+                          {new Date(message.sent_at).toLocaleDateString([], {
+                            month: "short",
+                            day: "numeric",
+                          }) +
+                            " " +
+                            new Date(message.sent_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      key={message.messageID}
+                      className="flex flex-col justify-start"
+                    >
+                      <p className="text-sm pl-3">
+                        {
+                          user.find(
+                            (person) => person.userID === message.senderID
+                          )?.username
+                        }
+                      </p>
+                      <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full">
+                        {message.content}
+                      </Card>
+                      <p className="text-sm opacity-40 pl-3">
+                        {new Date(message.sent_at).toLocaleDateString([], {
+                          month: "short",
+                          day: "numeric",
+                        }) +
+                          " " +
+                          new Date(message.sent_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                      </p>
+                    </div>
+                  )
+                )}
           </div>
-        </CardContent>
-        <CardFooter className="mt-auto border-t border-slate-300 dark:border-slate-800">
+        </main>
+        <footer className="pb-5">
           <form
             onSubmit={sendMessage}
             className="flex flex-row gap-2 mt-3 w-full justify-center"
           >
             <Input
-              className="bg-slate-100 border-slate-300 dark:bg-slate-600 dark:border-slate-800 w-[60%]"
+              className="w-[60%]"
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
@@ -101,8 +186,8 @@ export default function Home() {
               <Send />
             </Button>
           </form>
-        </CardFooter>
-      </Card>
-    </div>
+        </footer>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
