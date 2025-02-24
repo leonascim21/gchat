@@ -34,73 +34,9 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { users } from "../fakeData/fakeData";
 
-const friends = [
-  {
-    id: 1,
-    name: "Pedro",
-  },
-  {
-    id: 2,
-    name: "João",
-  },
-  {
-    id: 3,
-    name: "Maria",
-  },
-  {
-    id: 4,
-    name: "Ana",
-  },
-  {
-    id: 5,
-    name: "José",
-  },
-  {
-    id: 6,
-    name: "Carlos",
-  },
-  {
-    id: 7,
-    name: "Paulo",
-  },
-  {
-    id: 8,
-    name: "Luís",
-  },
-  {
-    id: 9,
-    name: "Rui",
-  },
-  {
-    id: 10,
-    name: "Miguel",
-  },
-  {
-    id: 11,
-    name: "Fernando",
-  },
-  {
-    id: 12,
-    name: "Bruno",
-  },
-  {
-    id: 13,
-    name: "Ricardo",
-  },
-  {
-    id: 14,
-    name: "Cristiano",
-  },
-  {
-    id: 15,
-    name: "André",
-  },
-  {
-    id: 16,
-    name: "Inês",
-  },
-];
+const friends = users;
 
 export default function CreateChatForm() {
   return (
@@ -141,11 +77,11 @@ export default function CreateChatForm() {
                           <div className="space-y-2">
                             {friends.map((friend) => (
                               <div
-                                key={friend.id}
+                                key={friend.userID}
                                 className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b"
                               >
                                 <Checkbox />
-                                <Label>{friend.name}</Label>
+                                <Label>{friend.username}</Label>
                               </div>
                             ))}
                           </div>

@@ -18,63 +18,12 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import CreateChatForm from "./_components/createChatForm";
+import { groupMessages, groups, messages, users } from "./fakeData/fakeData";
 
-const chats = [
-  {
-    id: 1,
-    name: "Chat 1",
-    messages: [
-      {
-        id: 1,
-        message: "Hello Chat 1",
-      },
-      {
-        id: 2,
-        message: "Hi",
-      },
-      {
-        id: 3,
-        message: "How are you?",
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "Chat 2",
-    messages: [
-      {
-        id: 1,
-        message: "Hello",
-      },
-      {
-        id: 2,
-        message: "Hi Chat 2",
-      },
-      {
-        id: 3,
-        message: "How are you?",
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "Chat 3",
-    messages: [
-      {
-        id: 1,
-        message: "Hello Chat 3",
-      },
-      {
-        id: 2,
-        message: "Hi",
-      },
-      {
-        id: 3,
-        message: "How are you?",
-      },
-    ],
-  },
-];
+const chats = groups;
+const message = messages;
+const groupMessage = groupMessages;
+const user = users;
 
 export default function Home() {
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
@@ -122,13 +71,13 @@ export default function Home() {
         <SidebarContent>
           <SidebarMenu>
             {chats.map((chat) => (
-              <SidebarMenuItem key={chat.id}>
+              <SidebarMenuItem key={chat.groupID}>
                 <SidebarMenuButton
-                  onClick={() => setSelectedChat(chat.id)}
-                  isActive={selectedChat === chat.id}
+                  onClick={() => setSelectedChat(chat.groupID)}
+                  isActive={selectedChat === chat.groupID}
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
-                  {chat.name}
+                  {chat.group_name}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -143,7 +92,8 @@ export default function Home() {
             </SidebarTrigger>
             <h1 className="font-semibold">
               {selectedChat
-                ? chats.find((chat) => chat.id === selectedChat)?.name
+                ? chats.find((chat) => chat.groupID === selectedChat)
+                    ?.group_name
                 : "Select a chat"}
             </h1>
           </div>
@@ -159,20 +109,61 @@ export default function Home() {
         <main className="flex-1 overflow-auto p-6">
           <div className="flex flex-col gap-2 w-full">
             {selectedChat &&
-              chats
-                .find((chat) => chat.id === selectedChat)
-                ?.messages?.map((message, index) =>
-                  index % 2 == 0 ? (
-                    <div key={index} className="flex justify-end">
-                      <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full">
-                        {message.message}
-                      </Card>
+              chats.find((chat) => chat.groupID === selectedChat)?.groupID &&
+              message
+                .filter((msg) =>
+                  groupMessage.find(
+                    (gm) =>
+                      gm.messageID === msg.messageID &&
+                      gm.groupID === selectedChat
+                  )
+                )
+                .map((message) =>
+                  message.senderID == 1 ? (
+                    <div key={message.messageID} className="flex justify-end">
+                      <div className="flex flex-col">
+                        <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full">
+                          {message.content}
+                        </Card>
+                        <p className="text-sm opacity-40 text-right pr-3">
+                          {new Date(message.sent_at).toLocaleDateString([], {
+                            month: "short",
+                            day: "numeric",
+                          }) +
+                            " " +
+                            new Date(message.sent_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                        </p>
+                      </div>
                     </div>
                   ) : (
-                    <div key={index} className="flex justify-start">
+                    <div
+                      key={message.messageID}
+                      className="flex flex-col justify-start"
+                    >
+                      <p className="text-sm pl-3">
+                        {
+                          user.find(
+                            (person) => person.userID === message.senderID
+                          )?.username
+                        }
+                      </p>
                       <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full">
-                        {message.message}
+                        {message.content}
                       </Card>
+                      <p className="text-sm opacity-40 pl-3">
+                        {new Date(message.sent_at).toLocaleDateString([], {
+                          month: "short",
+                          day: "numeric",
+                        }) +
+                          " " +
+                          new Date(message.sent_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                      </p>
                     </div>
                   )
                 )}
