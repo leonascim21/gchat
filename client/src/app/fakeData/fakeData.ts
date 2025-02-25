@@ -665,6 +665,7 @@ const messages: Message[] = [
 ];
 
 const groups: Group[] = [
+  { groupID: -1, group_name: "Test Chat", created_at: "2023-12-01T09:00:00Z" },
   { groupID: 1, group_name: "Developers", created_at: "2023-12-01T09:00:00Z" },
   { groupID: 2, group_name: "Designers", created_at: "2023-12-02T09:00:00Z" },
   { groupID: 3, group_name: "Marketing", created_at: "2023-12-03T09:00:00Z" },

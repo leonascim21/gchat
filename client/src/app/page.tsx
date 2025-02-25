@@ -42,7 +42,6 @@ export default function Home() {
     };
 
     ws.onmessage = (event) => {
-      console.log(messages);
       setMessages((prev) => [...prev, event.data]);
     };
 
@@ -62,11 +61,25 @@ export default function Home() {
       wsRef.current.send(inputMessage);
       setInputMessage("");
     }
+
+    /*
+    const payload = {
+      message: inputMessage,
+      group_id: selectedChat,
+      sender_id: 1,
+    };
+    if (inputMessage.trim() && wsRef.current) {
+      console.log("sent");
+      wsRef.current.send(JSON.stringify(payload));
+      setInputMessage("");
+    }
+      */
   };
 
   return (
     <SidebarProvider>
       <Sidebar>
+        <h1 className="text-md font-semibold text-center pt-4">GChat</h1>
         <CreateChatForm />
         <SidebarContent>
           <SidebarMenu>
@@ -90,14 +103,12 @@ export default function Home() {
             <SidebarTrigger>
               <Menu className="h-6 w-6" />
             </SidebarTrigger>
-            <h1 className="font-semibold">
-              {selectedChat
-                ? chats.find((chat) => chat.groupID === selectedChat)
-                    ?.group_name
-                : "Select a chat"}
-            </h1>
           </div>
-          <h1 className="text-xl font-bold invisible md:visible">GChat</h1>
+          <h1 className="font-semibold ">
+            {selectedChat
+              ? chats.find((chat) => chat.groupID === selectedChat)?.group_name
+              : "Select a chat"}
+          </h1>
           <div className="flex flex-row items-center gap-3">
             <p className="text-sm invisible md:visible">
               Status: {connected ? "Connected" : "Disconnected"}
@@ -108,7 +119,7 @@ export default function Home() {
         </header>
         <main className="flex-1 overflow-auto p-6">
           <div className="flex flex-col gap-2 w-full">
-            {selectedChat &&
+            {selectedChat && selectedChat !== -1 ? (
               chats.find((chat) => chat.groupID === selectedChat)?.groupID &&
               message
                 .filter((msg) =>
@@ -122,7 +133,7 @@ export default function Home() {
                   message.senderID == 1 ? (
                     <div key={message.messageID} className="flex justify-end">
                       <div className="flex flex-col">
-                        <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full">
+                        <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full ml-12">
                           {message.content}
                         </Card>
                         <p className="text-sm opacity-40 text-right pr-3">
@@ -150,7 +161,7 @@ export default function Home() {
                           )?.username
                         }
                       </p>
-                      <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full">
+                      <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full mr-12">
                         {message.content}
                       </Card>
                       <p className="text-sm opacity-40 pl-3">
@@ -166,26 +177,49 @@ export default function Home() {
                       </p>
                     </div>
                   )
+                )
+            ) : (
+              <div className="flex flex-col gap-2 w-full">
+                {messages.map((message, index) =>
+                  index % 2 == 0 ? (
+                    <div key={index} className="flex justify-end">
+                      <div className="flex flex-col">
+                        <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full ml-12">
+                          {message}
+                        </Card>
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={index} className="flex justify-start">
+                      <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full mr-12">
+                        {message}
+                      </Card>
+                    </div>
+                  )
                 )}
+              </div>
+            )}
           </div>
         </main>
         <footer className="pb-5">
-          <form
-            onSubmit={sendMessage}
-            className="flex flex-row gap-2 mt-3 w-full justify-center"
-          >
-            <Input
-              className="w-[60%]"
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Type your message..."
-              disabled={!connected}
-            />
-            <Button className="w-[5%]" disabled={!inputMessage}>
-              <Send />
-            </Button>
-          </form>
+          {selectedChat && (
+            <form
+              onSubmit={sendMessage}
+              className="flex flex-row gap-2 mt-3 w-full justify-center"
+            >
+              <Input
+                className="w-[60%]"
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder="Type your message..."
+                disabled={!connected}
+              />
+              <Button className="w-[5%]" disabled={!inputMessage}>
+                <Send />
+              </Button>
+            </form>
+          )}
         </footer>
       </SidebarInset>
     </SidebarProvider>
