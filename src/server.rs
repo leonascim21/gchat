@@ -6,6 +6,8 @@ use tokio::select;
 use sqlx::postgres::PgPoolOptions;
 use dotenv::dotenv;
 
+use gauth::models;
+
 mod routes;
 use crate::routes::auth;
 use axum::routing::post;
@@ -39,7 +41,8 @@ async fn main() {
     let(tx, mut _rx) = broadcast::channel::<String>(100);
 
     let app = Router::new()
-        .route("/login", get(Html("Hi there!")));
+        .route("/login", get(|| async { Html(include_str!("../templates/login.html")) } ))
+        .route("/register", get(|| async { Html(include_str!("../templates/register.html")) } ));;
     let http_server = TcpListener::bind("0.0.0.0:3013").await.unwrap();
 
     // Shared DB state
