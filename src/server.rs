@@ -1,23 +1,35 @@
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tokio::net::TcpListener;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast};
 use tokio::select;
 use sqlx::postgres::PgPoolOptions;
 use dotenv::dotenv;
+use std::sync::Arc;
+use serde::Deserialize;
 
-use gauth::models;
+use gauth::models::{Auth, User};
 
 mod routes;
 use crate::routes::auth;
-use axum::routing::post;
-use axum::routing::get;
-use axum::routing::Router;
-use axum::response::Html;
+use axum::routing::{post, get, Router};
+use axum::response::{Html, Redirect};
+use axum::http::{StatusCode};
+use axum::extract::Form;
+use axum::Extension;
 
 struct ServerState {
     db: sqlx::PgPool,
     tx: broadcast::Sender<String>,
+}
+
+#[derive(Deserialize)]
+struct RegisterForm {
+    username: String,
+    email: String,
+    password: String,
+    #[serde(rename = "confirm-password")]
+    confirm_password: String,
 }
 
 #[tokio::main]
@@ -36,13 +48,16 @@ async fn main() {
         .await
         .expect("Failed to create pool");
 
+        let auth = Auth::new(db_url).await;
+        let auth = Arc::new(auth);
 
     let server = TcpListener::bind("0.0.0.0:3012").await.unwrap();
     let(tx, mut _rx) = broadcast::channel::<String>(100);
 
     let app = Router::new()
         .route("/login", get(|| async { Html(include_str!("../templates/login.html")) } ))
-        .route("/register", get(|| async { Html(include_str!("../templates/register.html")) } ));;
+        .route("/register", get(|| async { Html(include_str!("../templates/register.html")) } ))
+        .route("/register", post(handle_registration));
     let http_server = TcpListener::bind("0.0.0.0:3013").await.unwrap();
 
     // Shared DB state
@@ -53,6 +68,31 @@ async fn main() {
         handle_http_server(http_server, app),
         handle_websocket_connections(server, tx, state)
     );
+}
+
+async fn handle_registration(
+    Extension(auth): Extension<Arc<Auth>>,
+    Form(form): Form<RegisterForm>,
+) -> Result<Redirect, (StatusCode, String)> {
+    // Validate passwords match
+    if form.password != form.confirm_password {
+        return Err((StatusCode::BAD_REQUEST, "Passwords do not match".to_string()));
+    }
+
+    // Create a new user
+    let user = User {
+        id: None,
+        username: form.username,
+        email: form.email,
+        password: form.password, // Note: You should hash this password
+        created_at: None,
+    };
+
+    // Register the user
+    match auth.register_user(user).await {
+        Ok(_) => Ok(Redirect::to("/login")),
+        Err(_) => Err((StatusCode::BAD_REQUEST, "Username or email already exists".to_string())),
+    }
 }
 
 async fn handle_websocket_connections (server: TcpListener, tx: broadcast::Sender<String>, state: std::sync::Arc<ServerState>) {
