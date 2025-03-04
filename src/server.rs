@@ -32,6 +32,12 @@ struct RegisterForm {
     confirm_password: String,
 }
 
+#[derive(Deserialize)]
+struct LoginForm {
+    username: String,
+    password: String,
+}
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -97,6 +103,26 @@ async fn handle_registration(
         Err(_) => Err((StatusCode::BAD_REQUEST, "Username or email already exists".to_string())),
     }
 }
+
+// Pending adding login functionality to gauth
+/*
+async fn handle_login(
+    Extension(auth): Extension<Arc<Auth>>,
+    Form(form): Form<LoginForm>,
+) -> Result<Redirect, (StatusCode, String)> {
+    let user = User {
+        id: None,
+        username: form.username,
+        email: None,
+        password: form.password,
+        created_at: None
+    };
+
+    match auth.user_login(user).await {
+
+    }
+}
+*/
 
 async fn handle_websocket_connections (server: TcpListener, tx: broadcast::Sender<String>, state: std::sync::Arc<ServerState>) {
 
