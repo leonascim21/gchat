@@ -39,7 +39,12 @@ async fn main() {
 
     let db_url = std::env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
-
+    
+    let auth = Auth::new(db_url.clone())
+    .await
+    .expect("Failed to create auth instance");
+    
+    let auth = std::sync::Arc::new(auth);
 
     // DB connection pool
     let pool = PgPoolOptions::new()
@@ -47,9 +52,6 @@ async fn main() {
         .connect(&db_url)
         .await
         .expect("Failed to create pool");
-
-        let auth = Auth::new(db_url).await;
-        let auth = Arc::new(auth);
 
     let server = TcpListener::bind("0.0.0.0:3012").await.unwrap();
     let(tx, mut _rx) = broadcast::channel::<String>(100);
