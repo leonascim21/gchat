@@ -57,7 +57,8 @@ async fn main() {
     let app = Router::new()
         .route("/login", get(|| async { Html(include_str!("../templates/login.html")) } ))
         .route("/register", get(|| async { Html(include_str!("../templates/register.html")) } ))
-        .route("/register", post(handle_registration));
+        .route("/register", post(handle_registration))
+        .layer(Extension(auth));
     let http_server = TcpListener::bind("0.0.0.0:3013").await.unwrap();
 
     // Shared DB state
