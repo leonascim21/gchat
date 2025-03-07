@@ -121,7 +121,7 @@ async fn handle_login(
     };
 
     match auth.user_login(user).await {
-        Ok(_) => Ok(Redirect::to("/login")),
+        Ok(_) => Ok(Redirect::to("/success")),
         Err(_) => Err((StatusCode::BAD_REQUEST, "Username or password wrong".to_string())),
     }
 }
