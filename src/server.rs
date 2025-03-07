@@ -64,6 +64,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/login", get(|| async { Html(include_str!("../templates/login.html")) } ))
+        .route("/login", post(handle_login))
         .route("/register", get(|| async { Html(include_str!("../templates/register.html")) } ))
         .route("/register", post(handle_registration))
         .route("/success", get(|| async { Html(include_str!("../templates/success.html")) }))

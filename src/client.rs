@@ -5,7 +5,7 @@ use tokio::io::AsyncBufReadExt;
 
 #[tokio::main]
 async fn main() {
-    let url = url::Url::parse("ws://localhost:3012/socket").unwrap();
+    let url = url::Url::parse("wss://ws.gchat.cloud").unwrap();
     let (ws_stream, response) = connect_async(url).await.expect("Failed to connect");
     let (mut write, mut read) = ws_stream.split();
 
