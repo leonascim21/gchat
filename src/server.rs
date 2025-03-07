@@ -66,6 +66,7 @@ async fn main() {
         .route("/login", get(|| async { Html(include_str!("../templates/login.html")) } ))
         .route("/register", get(|| async { Html(include_str!("../templates/register.html")) } ))
         .route("/register", post(handle_registration))
+        .route("/success", get(|| async { Html(include_str!("../templates/success.html")) }))
         .layer(Extension(auth));
     let http_server = TcpListener::bind("0.0.0.0:3013").await.unwrap();
 
@@ -92,7 +93,7 @@ async fn handle_registration(
     let user = User {
         id: None,
         username: form.username,
-        email: form.email,
+        email: Some(form.email),
         password: form.password, // Note: You should hash this password
         created_at: None,
     };
@@ -105,7 +106,7 @@ async fn handle_registration(
 }
 
 // Pending adding login functionality to gauth
-/*
+
 async fn handle_login(
     Extension(auth): Extension<Arc<Auth>>,
     Form(form): Form<LoginForm>,
@@ -119,10 +120,10 @@ async fn handle_login(
     };
 
     match auth.user_login(user).await {
-
+        Ok(_) => Ok(Redirect::to("/login")),
+        Err(_) => Err((StatusCode::BAD_REQUEST, "Username or password wrong".to_string())),
     }
 }
-*/
 
 async fn handle_websocket_connections (server: TcpListener, tx: broadcast::Sender<String>, state: std::sync::Arc<ServerState>) {
 
@@ -131,8 +132,8 @@ async fn handle_websocket_connections (server: TcpListener, tx: broadcast::Sende
         let state = state.clone(); // Lightweight since state is wrapped in Arc
 
         tokio::spawn(async move {
-            let mut websocket = accept_async(stream).await.unwrap();
-            let mut rx = tx_clone.subscribe();
+            let mut websocket: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream> = accept_async(stream).await.unwrap();
+            let mut rx: broadcast::Receiver<String> = tx_clone.subscribe();
 
             loop {
                     select! {
