@@ -12,13 +12,14 @@ tungstenite = "0.26.1"
 tokio-rustls = "0.24"
 rustls = "0.21"
 rustls-pemfile = "1.0"
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "time"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "time"]}
 dotenv = "0.15"
 axum = {version = "0.7", features = ["ws"]}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 gauth = {path = "../gauth"}
 axum-extra = {version = "0.10.0", features = ["typed-header"] }
+jsonwebtoken = "9"
 
 [[bin]]
 name = "server"

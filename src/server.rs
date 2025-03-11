@@ -2,33 +2,33 @@ use axum::extract::ws::WebSocket;
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
+use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::select;
 use tokio::sync::broadcast;
-use tokio_tungstenite::accept_async;
 
-use gauth::models::{Auth, User};
+use gauth::models::{Auth, Claims, User};
 use gauth::{jwt, validate_token};
 
 mod routes;
-use crate::routes::auth;
 use axum::extract::Form;
 use axum::http::StatusCode;
 use axum::response::{Html, Redirect};
 use axum::routing::{get, post};
 use axum::Extension;
 use axum::{
-    body::Bytes,
     extract::{ws::Message, Query, State, WebSocketUpgrade},
     response::IntoResponse,
     routing::{any, Router},
+    Json,
 };
 
-use axum_extra::TypedHeader;
+use jsonwebtoken::encode;
 use std::collections::HashMap;
-use std::{net::SocketAddr, path::PathBuf};
+use std::net::SocketAddr;
+use std::time::Duration;
+use std::time::SystemTime;
 
 struct ServerState {
     db: sqlx::PgPool,
@@ -94,6 +94,9 @@ async fn main() {
             "/success",
             get(|| async { Html(include_str!("../templates/success.html")) }),
         )
+        .route("/api/validate-token", get(validate_token_handler))
+        .route("/api/me", get(get_user_info))
+        .route("/api/logout", post(handle_logout))
         .layer(Extension(auth))
         .with_state(state);
 
@@ -139,7 +142,7 @@ async fn handle_registration(
 async fn handle_login(
     Extension(auth): Extension<Arc<Auth>>,
     Form(form): Form<LoginForm>,
-) -> Result<Redirect, (StatusCode, String)> {
+) -> impl IntoResponse {
     let user = User {
         id: None,
         username: form.username,
@@ -149,7 +152,27 @@ async fn handle_login(
     };
 
     match auth.user_login(user).await {
-        Ok(Some(user)) => Ok(Redirect::to("/success")),
+        Ok(Some(user)) => {
+            let claims = Claims {
+                sub: user.id.unwrap().to_string(),
+                exp: (SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    + (60 * 60 * 24)),
+            };
+
+            let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+            let token = jsonwebtoken::encode(
+                &jsonwebtoken::Header::default(),
+                &claims,
+                &jsonwebtoken::EncodingKey::from_secret(jwt_key.as_bytes()),
+            )
+            .unwrap();
+
+            // Return JSON with token
+            Ok(Json(json!({ "token": token })))
+        }
         Ok(None) => Err((
             StatusCode::UNAUTHORIZED,
             "No user with these credentials exists".to_string(),
@@ -166,20 +189,20 @@ async fn ws_handler(
     ws: WebSocketUpgrade,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    dotenv().ok();
     let token = params.get("token").cloned();
-    let key = std::env::var("JWT_KEY");
 
-    // Checking if there's a token
     if token.is_none() {
         return (StatusCode::UNAUTHORIZED, "Missing authentication token").into_response();
     }
+    dotenv().ok();
+
+    let key = std::env::var("JWT_KEY").expect("Must set JWT_KEY environment variable");
 
     let token = token.unwrap();
 
-    match validate_token(&token, String::from("key")).await {
-        Ok(Claims) => ws.on_upgrade(move |socket| handle_socket(socket, Claims.sub, state)),
-        Err(e) => return (StatusCode::UNAUTHORIZED, "Invalid token").into_response(),
+    match validate_token(&token, key).await {
+        Ok(claims) => ws.on_upgrade(move |socket| handle_socket(socket, claims.sub, state)),
+        Err(_) => return (StatusCode::UNAUTHORIZED, "Invalid token").into_response(),
     }
 }
 
@@ -197,20 +220,22 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
     // Task to handle messages from this client
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
-            /*
-            // (Save to database, broadcast to other clients, etc.)
-            if let Err(e) = sqlx::query!(
-                "INSERT INTO messages (content) VALUES ($1)",
-                rec_msg.to_string()
-            )
-            .execute(&state.db)
-            .await
-            {
-                eprintln!("Failed to store message: {}", e);
-            }
-            */
+            // Check if this is a text message
+            if let Message::Text(text_content) = msg {
+                println!("[Broadcasting]: {}", text_content);
 
-            state.tx.send(msg.into_text().unwrap());
+                // Store in database
+                if let Err(e) =
+                    sqlx::query!("INSERT INTO messages (content) VALUES ($1)", text_content)
+                        .execute(&state.db)
+                        .await
+                {
+                    eprintln!("Failed to store message: {}", e);
+                }
+
+                // Broadcast to all clients
+                state.tx.send(text_content);
+            }
         }
     });
 
@@ -228,3 +253,74 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
 async fn handle_http_server(listener: TcpListener, app: Router<()>) {
     axum::serve(listener, app).await.unwrap();
 }
+
+async fn validate_token_handler(
+    Extension(auth): Extension<Arc<Auth>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let token = params.get("token");
+
+    if token.is_none() {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({ "valid": false, "error": "Missing token" })),
+        )
+            .into_response();
+    }
+
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+
+    match validate_token(token.unwrap(), jwt_key).await {
+        Ok(_) => (StatusCode::OK, Json(json!({ "valid": true }))).into_response(),
+        Err(_) => (StatusCode::UNAUTHORIZED, Json(json!({ "valid": false }))).into_response(),
+    }
+}
+
+async fn get_user_info(
+    Extension(auth): Extension<Arc<Auth>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let token = params.get("token");
+
+    if token.is_none() {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({ "error": "Missing token" })),
+        )
+            .into_response();
+    }
+
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+
+    match validate_token(token.unwrap(), jwt_key).await {
+        Ok(claims) => {
+            // Get user details from DB using the user ID in the token
+            match auth.get_user_by_username(claims.sub).await {
+                Ok(Some(user)) => {
+                    // Don't include password in response
+                    (
+                        StatusCode::OK,
+                        Json(json!({
+                            "id": user.id,
+                            "username": user.username,
+                            "email": user.email
+                        })),
+                    )
+                        .into_response()
+                }
+                _ => (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({ "error": "User not found" })),
+                )
+                    .into_response(),
+            }
+        }
+        Err(_) => (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({ "error": "Invalid token" })),
+        )
+            .into_response(),
+    }
+}
+
+async fn handle_logout() {}
