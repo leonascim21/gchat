@@ -79,7 +79,7 @@ async fn main() {
     let state = std::sync::Arc::new(state);
 
     let app = Router::new()
-        .route("ping", get(|| async { "pong" }))
+        .route("/ping", get(|| async { "pong" }))
         .route("/ws", get(ws_handler))
         .route(
             "/login",
