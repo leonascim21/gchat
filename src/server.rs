@@ -81,9 +81,13 @@ async fn main() {
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
         .route("/ws", get(ws_handler))
+        .route(
+            "/login",
+            get(|| async { Html(include_str!("../templates/login.html")) }),
+        )
         .route("/login", post(handle_login))
         .route("/register", post(handle_registration))
-        .route("/api/validate-token", get(validate_token_handler))
+        //.nofollow.route("/api/validate-token", get(validate_token_handler))
         .route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
         .layer(Extension(auth))
