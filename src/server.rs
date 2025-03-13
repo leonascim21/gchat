@@ -81,21 +81,9 @@ async fn main() {
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
         .route("/ws", get(ws_handler))
-        .route(
-            "/login",
-            get(|| async { Html(include_str!("../templates/login.html")) }),
-        )
         .route("/login", post(handle_login))
-        .route(
-            "/register",
-            get(|| async { Html(include_str!("../templates/register.html")) }),
-        )
         .route("/register", post(handle_registration))
-        .route(
-            "/success",
-            get(|| async { Html(include_str!("../templates/success.html")) }),
-        )
-        .route("/api/validate-token", get(validate_token_handler))
+        //.route("/api/validate-token", get(validate_token_handler))
         .route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
         .layer(Extension(auth))
@@ -255,7 +243,7 @@ async fn handle_http_server(listener: TcpListener, app: Router<()>) {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn validate_token_handler(
+/* async fn validate_token_handler(
     Extension(auth): Extension<Arc<Auth>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
@@ -275,7 +263,7 @@ async fn validate_token_handler(
         Ok(_) => (StatusCode::OK, Json(json!({ "valid": true }))).into_response(),
         Err(_) => (StatusCode::UNAUTHORIZED, Json(json!({ "valid": false }))).into_response(),
     }
-}
+} */
 
 async fn get_user_info(
     Extension(auth): Extension<Arc<Auth>>,
