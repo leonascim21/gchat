@@ -83,7 +83,7 @@ async fn main() {
         .route("/ws", get(ws_handler))
         .route("/login", post(handle_login))
         .route("/register", post(handle_registration))
-        //.route("/api/validate-token", get(validate_token_handler))
+        .route("/api/validate-token", get(validate_token_handler))
         .route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
         .layer(Extension(auth))
