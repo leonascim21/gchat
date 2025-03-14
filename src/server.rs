@@ -88,7 +88,7 @@ async fn main() {
         .route("/login", post(handle_login))
         .route("/register", post(handle_registration))
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
-        .route("/api/me", get(get_user_info))
+        //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
         .layer(Extension(auth))
         .with_state(state);
