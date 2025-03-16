@@ -1,8 +1,1 @@
-use axum::{
-    body::Body,
-    routing::get,
-    response::Html,
-    Router,
-};
-
-
+use axum::{body::Body, response::Html, routing::get, Router};
