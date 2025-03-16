@@ -130,8 +130,6 @@ async fn handle_registration(
     }
 }
 
-// Pending adding login functionality to gauth
-
 async fn handle_login(
     Extension(auth): Extension<Arc<Auth>>,
     Form(form): Form<LoginForm>,
@@ -242,32 +240,6 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
         }
     }
 }
-
-async fn handle_http_server(listener: TcpListener, app: Router<()>) {
-    axum::serve(listener, app).await.unwrap();
-}
-
-/* async fn validate_token_handler(
-    Extension(auth): Extension<Arc<Auth>>,
-    Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
-    let token = params.get("token");
-
-    if token.is_none() {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "valid": false, "error": "Missing token" })),
-        )
-            .into_response();
-    }
-
-    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
-
-    match validate_token(token.unwrap(), jwt_key).await {
-        Ok(_) => (StatusCode::OK, Json(json!({ "valid": true }))).into_response(),
-        Err(_) => (StatusCode::UNAUTHORIZED, Json(json!({ "valid": false }))).into_response(),
-    }
-} */
 
 async fn get_user_info(
     Extension(auth): Extension<Arc<Auth>>,
