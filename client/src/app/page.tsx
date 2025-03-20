@@ -33,6 +33,13 @@ export default function Home() {
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const [showSignInModal, setShowSignInModal] = useState(true);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
+
+  const switchForm = () => {
+    setShowSignInModal(!showSignInModal);
+    setShowSignUpModal(!showSignUpModal);
+  };
 
   useEffect(() => {
     const ws = new WebSocket("wss://ws.gchat.cloud");
@@ -224,7 +231,8 @@ export default function Home() {
           )}
         </footer>
       </SidebarInset>
-      <SignInModal />
+      {showSignInModal && <SignInModal showSignUp={switchForm} />}
+      {showSignUpModal && <SignUpModal showSignIn={switchForm} />}
     </SidebarProvider>
   );
 }

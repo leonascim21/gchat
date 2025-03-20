@@ -30,7 +30,11 @@ const userSchema = z
     }
   });
 
-export default function SignUpModal() {
+interface Props {
+  showSignIn: () => void;
+}
+
+export default function SignUpModal({ showSignIn }: Props) {
   const [open, setOpen] = useState(true);
   const qs = require("qs");
 
@@ -192,9 +196,9 @@ export default function SignUpModal() {
         </form>
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}
-          <a href="/signin" className="underline underline-offset-4">
+          <button onClick={showSignIn} className="underline underline-offset-4">
             Sign In
-          </a>
+          </button>
         </div>
       </DialogContent>
     </Dialog>

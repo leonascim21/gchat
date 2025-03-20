@@ -18,7 +18,11 @@ const userSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export default function SignInModal() {
+interface Props {
+  showSignUp: () => void;
+}
+
+export default function SignInModal({ showSignUp }: Props) {
   const [open, setOpen] = useState(true);
   const qs = require("qs");
 
@@ -38,6 +42,7 @@ export default function SignInModal() {
           data
         );
         console.log("Login successful:", response.data);
+        localStorage.setItem("token", response.data.token);
       } catch (error: any) {
         console.error("Registration failed:", error);
         if (error.response) {
@@ -144,9 +149,9 @@ export default function SignInModal() {
         </form>
         <div className="mt-4 text-center text-sm">
           Don&apos;t have an account?{" "}
-          <a href="/signup" className="underline underline-offset-4">
+          <button onClick={showSignUp} className="underline underline-offset-4">
             Sign up
-          </a>
+          </button>
         </div>
       </DialogContent>
     </Dialog>
