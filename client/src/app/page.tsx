@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/sidebar";
 import CreateChatForm from "./_components/createChatForm";
 import { groupMessages, groups, messages, users } from "./fakeData/fakeData";
+import SignUpModal from "./_components/signupModal";
+import SignInModal from "./_components/signInModal";
 
 const chats = groups;
 const message = messages;
@@ -222,6 +224,7 @@ export default function Home() {
           )}
         </footer>
       </SidebarInset>
+      <SignInModal />
     </SidebarProvider>
   );
 }
