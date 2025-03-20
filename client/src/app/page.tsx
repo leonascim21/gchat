@@ -20,6 +20,8 @@ import {
 import CreateChatForm from "./_components/createChatForm";
 import { groupMessages, groups, messages, users } from "./fakeData/fakeData";
 import ManageFriends from "./_components/manageFriends";
+import SignInModal from "./_components/signInModal";
+import SignUpModal from "./_components/signupModal";
 
 const chats = groups;
 const message = messages;
@@ -41,7 +43,9 @@ export default function Home() {
   }, [selectedChat]);
 
   useEffect(() => {
-    const ws = new WebSocket("wss://ws.gchat.cloud");
+    const token =
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMTciLCJleHAiOjE3NDI1MDcwNzd9.G65NDRdO22-1M2Wc9WTQgSNF_SlZNSMaUwPzEGeuleY";
+    const ws = new WebSocket(`wss://ws.gchat.cloud/ws?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -250,6 +254,8 @@ export default function Home() {
               </form>
             )}
           </footer>
+          {false && <SignInModal showSignUp={() => console.log("oi")} />}
+          {false && <SignUpModal showSignIn={() => console.log("oi")} />}
         </SidebarInset>
       </SidebarProvider>
     </div>
