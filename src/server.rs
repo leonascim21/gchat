@@ -1,4 +1,9 @@
 use axum::extract::ws::WebSocket;
+use axum::http::header;
+use axum::http::Request;
+use axum::http::{HeaderValue, Method};
+use axum::middleware::{self, Next};
+use axum::response::Response;
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
@@ -7,11 +12,6 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
-use axum::http::{HeaderValue, Method};
-use axum::http::header;
-use axum::middleware::{self, Next};
-use axum::response::Response;
-use axum::http::Request;
 
 use gauth::models::{Auth, Claims, User};
 use gauth::{jwt, validate_token};
@@ -29,7 +29,6 @@ use axum::{
     Json,
 };
 
-use jsonwebtoken::encode;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -45,7 +44,7 @@ struct RegisterForm {
     username: String,
     email: String,
     password: String,
-    #[serde(rename = "confirm-password")]
+    #[serde(rename = "confirmPassword")]
     confirm_password: String,
 }
 
@@ -300,7 +299,7 @@ async fn handle_logout() {}
 // Add this function to handle CORS
 async fn cors_middleware(request: Request<axum::body::Body>, next: Next) -> Response {
     let mut response = next.run(request).await;
-    
+
     // Add CORS headers to the response
     let headers = response.headers_mut();
     headers.insert(
@@ -315,6 +314,6 @@ async fn cors_middleware(request: Request<axum::body::Body>, next: Next) -> Resp
         header::ACCESS_CONTROL_ALLOW_HEADERS,
         HeaderValue::from_static("Content-Type, Authorization"),
     );
-    
+
     response
 }
