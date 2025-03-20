@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -45,9 +44,9 @@ export default function CreateChatForm() {
         <SidebarMenu>
           <SidebarMenuItem>
             <DialogTrigger asChild>
-              <SidebarMenuButton className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                New Chat
+              <SidebarMenuButton className="w-full text-center">
+                <Plus className="h-4 w-4 text-primary font-bold" />
+                <p className="text-primary font-bold">New Chat</p>
               </SidebarMenuButton>
             </DialogTrigger>
             <DialogContent>
@@ -63,71 +62,69 @@ export default function CreateChatForm() {
                     </TabsTrigger>
                   </TabsList>
                 </DialogHeader>
-                <DialogDescription>
-                  <TabsContent value="groupChat">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Create new group chat</CardTitle>
-                        <CardDescription>
-                          Select friends to participate in the chat.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <ScrollArea className="h-[150px] pr-4">
-                          <div className="space-y-2">
-                            {friends.map((friend) => (
-                              <div
-                                key={friend.userID}
-                                className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b"
-                              >
-                                <Checkbox />
-                                <Label>{friend.username}</Label>
-                              </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      </CardContent>
-                      <CardFooter>
-                        <Button>Create Chat</Button>
-                      </CardFooter>
-                    </Card>
-                  </TabsContent>
-                  <TabsContent value="temporaryChat">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Start Temporary Chat</CardTitle>
-                        <CardDescription>
-                          Only accessible by link and password and self-deletes
-                          after selected duration.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="space-y-1">
-                          <Label>Duration</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Duration" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="30">30 minutes</SelectItem>
-                              <SelectItem value="60">1 hour</SelectItem>
-                              <SelectItem value="360">6 hours</SelectItem>
-                              <SelectItem value="1440">1 day</SelectItem>
-                              <SelectItem value="10080">7 days</SelectItem>
-                            </SelectContent>
-                          </Select>
+                <TabsContent value="groupChat">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Create new group chat</CardTitle>
+                      <CardDescription>
+                        Select friends to participate in the chat.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[150px] pr-4">
+                        <div className="space-y-2">
+                          {friends.map((friend) => (
+                            <div
+                              key={friend.userID}
+                              className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b"
+                            >
+                              <Checkbox />
+                              <Label>{friend.username}</Label>
+                            </div>
+                          ))}
                         </div>
-                        <div className="space-y-1">
-                          <Label>Set Password (Optional)</Label>
-                          <Input id="new" type="password" />
-                        </div>
-                      </CardContent>
-                      <CardFooter>
-                        <Button>Create Chat</Button>
-                      </CardFooter>
-                    </Card>
-                  </TabsContent>
-                </DialogDescription>
+                      </ScrollArea>
+                    </CardContent>
+                    <CardFooter>
+                      <Button>Create Chat</Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="temporaryChat">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Start Temporary Chat</CardTitle>
+                      <CardDescription>
+                        Only accessible by link and password and self-deletes
+                        after selected duration.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="space-y-1">
+                        <Label>Duration</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Duration" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="30">30 minutes</SelectItem>
+                            <SelectItem value="60">1 hour</SelectItem>
+                            <SelectItem value="360">6 hours</SelectItem>
+                            <SelectItem value="1440">1 day</SelectItem>
+                            <SelectItem value="10080">7 days</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Set Password (Optional)</Label>
+                        <Input id="new" type="password" />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button>Create Chat</Button>
+                    </CardFooter>
+                  </Card>
+                </TabsContent>
               </Tabs>
             </DialogContent>
           </SidebarMenuItem>
