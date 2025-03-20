@@ -21,6 +21,7 @@ import CreateChatForm from "./_components/createChatForm";
 import { groupMessages, groups, messages, users } from "./fakeData/fakeData";
 import SignUpModal from "./_components/signupModal";
 import SignInModal from "./_components/signInModal";
+import ManageFriends from "./_components/manageFriends";
 
 const chats = groups;
 const message = messages;
@@ -89,7 +90,10 @@ export default function Home() {
     <SidebarProvider>
       <Sidebar>
         <h1 className="text-md font-semibold text-center pt-4">GChat</h1>
-        <CreateChatForm />
+        <div className="flex flex-row justify-between">
+          <CreateChatForm />
+          <ManageFriends />
+        </div>
         <SidebarContent>
           <SidebarMenu>
             {chats.map((chat) => (
@@ -231,8 +235,8 @@ export default function Home() {
           )}
         </footer>
       </SidebarInset>
-      {showSignInModal && <SignInModal showSignUp={switchForm} />}
-      {showSignUpModal && <SignUpModal showSignIn={switchForm} />}
+      {/*{showSignInModal && <SignInModal showSignUp={switchForm} />}
+      {showSignUpModal && <SignUpModal showSignIn={switchForm} />}*/}
     </SidebarProvider>
   );
 }

@@ -45,9 +45,9 @@ export default function CreateChatForm() {
         <SidebarMenu>
           <SidebarMenuItem>
             <DialogTrigger asChild>
-              <SidebarMenuButton className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                New Chat
+              <SidebarMenuButton className="w-full text-center">
+                <Plus className="h-4 w-4 text-primary font-bold" />
+                <p className="text-primary font-bold">New Chat</p>
               </SidebarMenuButton>
             </DialogTrigger>
             <DialogContent>
