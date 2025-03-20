@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { z } from "zod";
 import { useForm } from "@tanstack/react-form";
 import axios from "axios";
+import qs from "qs";
 
 const userSchema = z
   .object({
@@ -36,7 +37,6 @@ interface Props {
 
 export default function SignUpModal({ showSignIn }: Props) {
   const [open, setOpen] = useState(true);
-  const qs = require("qs");
 
   const form = useForm({
     defaultValues: {
@@ -56,16 +56,20 @@ export default function SignUpModal({ showSignIn }: Props) {
           data
         );
         console.log("Registration successful:", response.data);
-      } catch (error: any) {
-        console.error("Registration failed:", error);
-        if (error.response) {
-          console.error("Server response:", error.response.data);
-          console.error("Server status:", error.response.status);
-          console.error("Server headers:", error.response.headers);
-        } else if (error.request) {
-          console.error("No response received:", error.request);
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Registration failed:", error);
+          if (error.response) {
+            console.error("Server response:", error.response.data);
+            console.error("Server status:", error.response.status);
+            console.error("Server headers:", error.response.headers);
+          } else if (error.request) {
+            console.error("No response received:", error.request);
+          } else {
+            console.error("Error setting up the request:", error.message);
+          }
         } else {
-          console.error("Error setting up the request:", error.message);
+          console.error("An unexpected error occurred:", error);
         }
       }
     },
@@ -94,9 +98,8 @@ export default function SignUpModal({ showSignIn }: Props) {
           }}
         >
           <div className="flex flex-col gap-4">
-            <form.Field
-              name="email"
-              children={(field) => {
+            <form.Field name="email">
+              {(field) => {
                 return (
                   <div className="grid gap-2">
                     <Label htmlFor={field.name}>Email</Label>
@@ -115,10 +118,9 @@ export default function SignUpModal({ showSignIn }: Props) {
                   </div>
                 );
               }}
-            />
-            <form.Field
-              name="username"
-              children={(field) => {
+            </form.Field>
+            <form.Field name="username">
+              {(field) => {
                 return (
                   <div className="grid gap-2">
                     <Label htmlFor={field.name}>Username</Label>
@@ -137,10 +139,9 @@ export default function SignUpModal({ showSignIn }: Props) {
                   </div>
                 );
               }}
-            />
-            <form.Field
-              name="password"
-              children={(field) => {
+            </form.Field>
+            <form.Field name="password">
+              {(field) => {
                 return (
                   <div className="grid gap-2">
                     <Label htmlFor={field.name}>Password</Label>
@@ -160,10 +161,9 @@ export default function SignUpModal({ showSignIn }: Props) {
                   </div>
                 );
               }}
-            />
-            <form.Field
-              name="confirmPassword"
-              children={(field) => {
+            </form.Field>
+            <form.Field name="confirmPassword">
+              {(field) => {
                 return (
                   <div className="grid gap-2">
                     <Label htmlFor={field.name}>Confirm Password</Label>
@@ -183,15 +183,16 @@ export default function SignUpModal({ showSignIn }: Props) {
                   </div>
                 );
               }}
-            />
+            </form.Field>
             <form.Subscribe
               selector={(state) => [state.canSubmit, state.isSubmitting]}
-              children={([canSubmit, isSubmitting]) => (
+            >
+              {([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit}>
                   {isSubmitting ? "..." : "Sign Up"}
                 </Button>
               )}
-            />
+            </form.Subscribe>
           </div>
         </form>
         <div className="mt-4 text-center text-sm">
