@@ -156,7 +156,7 @@ async fn handle_login(
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap()
                     .as_secs()
-                    + (60 * 60 * 24)),
+                    + (60 * 60 * 24 * 7)),
             };
 
             let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
