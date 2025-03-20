@@ -210,7 +210,7 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
     // Task to broadcast messages to this client
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = msg_rx.recv().await {
-            sender.send(Message::Text(msg));
+            sender.send(Message::Text(msg)).await;
         }
     });
 
