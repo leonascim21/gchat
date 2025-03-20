@@ -19,7 +19,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -31,13 +30,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Check, CircleUser, MessageSquareShare, Plus, X } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { users } from "../fakeData/fakeData";
 
@@ -73,7 +65,7 @@ export default function ManageFriends() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ScrollArea className="h-[250px] pr-4">
+                      <ScrollArea className="h-[270px] pr-4">
                         <div className="space-y-2">
                           {friends.map((friend) => (
                             <div
@@ -131,73 +123,80 @@ export default function ManageFriends() {
                         </div>
                       </div>
                       <hr></hr>
-                      <div>
-                        <Label className="font-semibold text-primary">
-                          Incoming Friend Requests
-                        </Label>
-                        <ScrollArea className="h-[120px] pr-4 pt-5">
-                          <div className="space-y-2">
-                            {friends.map((friend) => (
-                              <div
-                                key={friend.userID}
-                                className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b justify-between"
-                              >
-                                <Label>{friend.username}</Label>
-                                <div className="flex flex-row gap-3">
-                                  <TooltipProvider delayDuration={0}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Check className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Accept Request</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Deny Request</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
+                      <Tabs defaultValue="incoming" className="pr-2">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="incoming">
+                            Incoming Requests
+                          </TabsTrigger>
+                          <TabsTrigger value="outgoing">
+                            Outgoing Requests
+                          </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="incoming">
+                          <div>
+                            <ScrollArea className="h-[215px] pr-4 pt-5">
+                              <div className="space-y-2">
+                                {friends.map((friend) => (
+                                  <div
+                                    key={friend.userID}
+                                    className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b justify-between"
+                                  >
+                                    <Label>{friend.username}</Label>
+                                    <div className="flex flex-row gap-3">
+                                      <TooltipProvider delayDuration={0}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Check className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Accept Request</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Deny Request</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            </ScrollArea>
                           </div>
-                        </ScrollArea>
-                      </div>
-                      <hr></hr>
-                      <div>
-                        <Label className="font-semibold text-primary">
-                          Outgoing Friend Requests
-                        </Label>
-                        <ScrollArea className="h-[120px] pr-4 pt-5">
-                          <div className="space-y-2">
-                            {friends.map((friend) => (
-                              <div
-                                key={friend.userID}
-                                className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b justify-between"
-                              >
-                                <Label>{friend.username}</Label>
-                                <div className="flex flex-row gap-3">
-                                  <TooltipProvider delayDuration={0}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Cancel Request</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
+                        </TabsContent>
+                        <TabsContent value="outgoing">
+                          <div>
+                            <ScrollArea className="h-[215px] pr-4 pt-5">
+                              <div className="space-y-2">
+                                {friends.map((friend) => (
+                                  <div
+                                    key={friend.userID}
+                                    className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b justify-between"
+                                  >
+                                    <Label>{friend.username}</Label>
+                                    <div className="flex flex-row gap-3">
+                                      <TooltipProvider delayDuration={0}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Cancel Request</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            </ScrollArea>
                           </div>
-                        </ScrollArea>
-                      </div>
+                        </TabsContent>
+                      </Tabs>
                     </CardContent>
                   </Card>
                 </TabsContent>
