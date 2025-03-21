@@ -30,6 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import SettingsModal from "./_components/settingsModal";
 
 const chats = groups;
 const message = messages;
@@ -150,14 +151,7 @@ export default function Home() {
               </div>
               <div className="flex flex-row items-center gap-4">
                 <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Settings className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Settings</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <SettingsModal />
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <LogOut className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
