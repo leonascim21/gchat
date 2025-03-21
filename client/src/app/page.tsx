@@ -3,13 +3,22 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Menu, MessageSquare, Send } from "lucide-react";
+import {
+  LogOut,
+  LogOutIcon,
+  Menu,
+  MessageSquare,
+  Send,
+  Settings,
+  User,
+} from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Ping from "./_components/ping";
 import ThemeToggle from "./_components/theme-toggle";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -22,6 +31,13 @@ import { groupMessages, groups, messages, users } from "./fakeData/fakeData";
 import ManageFriends from "./_components/manageFriends";
 import SignInModal from "./_components/signInModal";
 import SignUpModal from "./_components/signupModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const chats = groups;
 const message = messages;
@@ -130,6 +146,38 @@ export default function Home() {
               ))}
             </SidebarMenu>
           </SidebarContent>
+          <SidebarFooter>
+            <hr />
+            <div className="flex flex-row justify-between gap-2">
+              <div className="flex flex-row items-center gap-2">
+                <Avatar>
+                  <AvatarImage src="https://github.com/shadcn.png" />
+                  <AvatarFallback>CN</AvatarFallback>
+                </Avatar>
+                <p className="font-semibold">username</p>
+              </div>
+              <div className="flex flex-row items-center gap-4">
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Settings className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Settings</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <LogOut className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Log Out</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+          </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex flex-col flex-1">
           <header className="flex flex-row h-16 items-center justify-between border-b px-6">
