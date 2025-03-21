@@ -33,6 +33,8 @@ export default function Home() {
   const [messages, setMessages] = useState<string[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
+  const [signInVisible, setSignInVisible] = useState(false);
+  const [signUpVisible, setSignUpVisible] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -44,7 +46,7 @@ export default function Home() {
 
   useEffect(() => {
     const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMTciLCJleHAiOjE3NDI1MDcwNzd9.G65NDRdO22-1M2Wc9WTQgSNF_SlZNSMaUwPzEGeuleY";
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMTkiLCJleHAiOjE3NDMxMjc0Mzl9.9iHmwLLubEw_SiDildsXCE9K_C374IpDjjEJFGrVGdU";
     const ws = new WebSocket(`wss://ws.gchat.cloud/ws?token=${token}`);
     wsRef.current = ws;
 
@@ -96,6 +98,22 @@ export default function Home() {
           <div className="flex flex-row justify-between">
             <CreateChatForm />
             <ManageFriends />
+          </div>
+          <div className="flex flex-row justify-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSignUpVisible(true)}
+            >
+              Sign Up
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setSignInVisible(true)}
+            >
+              Sign In
+            </Button>
           </div>
           <SidebarContent>
             <SidebarMenu>
@@ -254,8 +272,12 @@ export default function Home() {
               </form>
             )}
           </footer>
-          {false && <SignInModal showSignUp={() => console.log("oi")} />}
-          {false && <SignUpModal showSignIn={() => console.log("oi")} />}
+          {signInVisible && (
+            <SignInModal showSignUp={() => console.log("oi")} />
+          )}
+          {signUpVisible && (
+            <SignUpModal showSignIn={() => console.log("oi")} />
+          )}
         </SidebarInset>
       </SidebarProvider>
     </div>
