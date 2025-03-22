@@ -41,7 +41,7 @@ export default function SignInModal({ showSignUp }: Props) {
           "http://206.189.202.251:3000/login",
           data
         );
-        console.log("Login successful:", response.data);
+        console.log("Login successful");
         localStorage.setItem("token", response.data.token);
       } catch (error) {
         if (axios.isAxiosError(error)) {

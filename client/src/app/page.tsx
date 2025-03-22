@@ -31,6 +31,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import SettingsModal from "./_components/settingsModal";
+import { generateProfilePictureSVG, usernameToColor } from "./utils";
+import axios from "axios";
 
 const chats = groups;
 const message = messages;
@@ -38,6 +40,7 @@ const groupMessage = groupMessages;
 const user = users;
 
 export default function Home() {
+  const [initialLoad, setInitialLoad] = useState(true);
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -52,6 +55,35 @@ export default function Home() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [selectedChat]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Token not found");
+      setSignInVisible(true);
+      setInitialLoad(false);
+      return;
+    }
+    axios
+      .get(`http://0.0.0.0:3001/check-token?token=${token}`)
+      .then((response) => {
+        if (response.data.valid) {
+          console.log("Token is valid");
+        } else {
+          setSignInVisible(true);
+          console.log("Token is invalid");
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking token:", error);
+      })
+      .finally(() => setInitialLoad(false));
+  }, []);
+
+  const switchAuthForm = () => {
+    setSignInVisible(!signInVisible);
+    setSignUpVisible(!signUpVisible);
+  };
 
   useEffect(() => {
     const token =
@@ -99,6 +131,14 @@ export default function Home() {
       */
   };
 
+  if (initialLoad) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-dvh flex flex-col">
       <SidebarProvider>
@@ -144,10 +184,15 @@ export default function Home() {
             <div className="flex flex-row justify-between gap-2">
               <div className="flex flex-row items-center gap-2">
                 <Avatar>
-                  <AvatarImage src="https://github.com/shadcn.png" />
+                  <AvatarImage src={generateProfilePictureSVG()} />
                   <AvatarFallback>CN</AvatarFallback>
                 </Avatar>
-                <p className="font-semibold">username</p>
+                <p
+                  className="font-semibold"
+                  style={{ color: usernameToColor("username") }}
+                >
+                  username
+                </p>
               </div>
               <div className="flex flex-row items-center gap-4">
                 <TooltipProvider delayDuration={0}>
@@ -306,12 +351,8 @@ export default function Home() {
               </form>
             )}
           </footer>
-          {signInVisible && (
-            <SignInModal showSignUp={() => console.log("oi")} />
-          )}
-          {signUpVisible && (
-            <SignUpModal showSignIn={() => console.log("oi")} />
-          )}
+          {signInVisible && <SignInModal showSignUp={switchAuthForm} />}
+          {signUpVisible && <SignUpModal showSignIn={switchAuthForm} />}
         </SidebarInset>
       </SidebarProvider>
     </div>
