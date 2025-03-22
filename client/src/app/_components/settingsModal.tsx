@@ -28,7 +28,8 @@ import ThemeToggle from "./theme-toggle";
 export default function SettingsModal() {
   const [theme, setTheme] = useState("theme-purple");
 
-  const changeTheme = (newTheme: any) => {
+  const changeTheme = (newTheme: string) => {
+    console.log(typeof newTheme);
     const classList = document.documentElement.classList;
     classList.remove(
       "theme-violet",
