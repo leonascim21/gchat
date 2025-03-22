@@ -91,6 +91,7 @@ async fn main() {
         )
         .route("/login", post(handle_login))
         .route("/register", post(handle_registration))
+        .route("/check-token", get(check_token))
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
@@ -99,10 +100,29 @@ async fn main() {
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn check_token(
+    Extension(auth): Extension<Arc<Auth>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let token = params.get("token");
+    if token.is_none() {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({ "error": "Missing token" })),
+        )
+           .into_response();
+    }
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    match validate_token(token.unwrap(), jwt_key).await {
+        Ok(_) => (StatusCode::OK, Json(json!({ "valid": true }))).into_response(),
+        Err(_) => (StatusCode::OK, Json(json!({ "valid": false }))).into_response(),
+    }
 }
 
 async fn handle_registration(
