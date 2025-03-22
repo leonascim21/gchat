@@ -70,7 +70,7 @@ export default function Home() {
 
     ws.onclose = () => {
       setConnected(false);
-      console.log("Disconnected from WebSocket server");
+      console.log("Disconnect from WebSocket server");
     };
 
     return () => {
