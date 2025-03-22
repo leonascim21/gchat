@@ -12,6 +12,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
+use tower_http::cors::{Any, CorsLayer};
 
 use gauth::models::{Auth, Claims, User};
 use gauth::{jwt, validate_token};
@@ -82,6 +83,11 @@ async fn main() {
 
     let state = std::sync::Arc::new(state);
 
+    let cors = CorsLayer::new()
+    .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::PUT])
+    .allow_origin(Any);
+
+
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
         .route("/ws", get(ws_handler))
@@ -96,7 +102,7 @@ async fn main() {
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
         // Add our custom CORS middleware
-        .layer(middleware::from_fn(cors_middleware))
+        .layer(cors)
         .layer(Extension(auth))
         .with_state(state);
 
@@ -316,24 +322,3 @@ async fn get_user_info(
 
 async fn handle_logout() {}
 
-// Add this function to handle CORS
-async fn cors_middleware(request: Request<axum::body::Body>, next: Next) -> Response {
-    let mut response = next.run(request).await;
-
-    // Add CORS headers to the response
-    let headers = response.headers_mut();
-    headers.insert(
-        header::ACCESS_CONTROL_ALLOW_ORIGIN,
-        HeaderValue::from_static("*"),
-    );
-    headers.insert(
-        header::ACCESS_CONTROL_ALLOW_METHODS,
-        HeaderValue::from_static("GET, POST, PUT, DELETE, OPTIONS"),
-    );
-    headers.insert(
-        header::ACCESS_CONTROL_ALLOW_HEADERS,
-        HeaderValue::from_static("Content-Type, Authorization"),
-    );
-
-    response
-}
