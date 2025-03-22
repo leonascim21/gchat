@@ -23,7 +23,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Plus } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -44,10 +44,15 @@ export default function CreateChatForm() {
         <SidebarMenu>
           <SidebarMenuItem>
             <DialogTrigger asChild>
-              <SidebarMenuButton className="w-full text-center">
-                <Plus className="h-4 w-4 text-primary font-bold" />
-                <p className="text-primary font-bold">New Chat</p>
-              </SidebarMenuButton>
+              <div className="w-full text-center">
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2 hover:bg-primary/10"
+                >
+                  <PlusCircle className="h-4 w-4 text-primary" />
+                  <span>New Chat</span>
+                </Button>
+              </div>
             </DialogTrigger>
             <DialogContent>
               <DialogTitle className="text-center">

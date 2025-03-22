@@ -42,6 +42,8 @@ const user = users;
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  useState<number | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
@@ -134,7 +136,12 @@ export default function Home() {
   if (initialLoad) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xl font-medium text-primary animate-pulse">
+            Loading GChat...
+          </p>
+        </div>
       </div>
     );
   }
@@ -150,17 +157,33 @@ export default function Home() {
           </div>
           <SidebarContent>
             <SidebarMenu>
-              {chats.map((chat) => (
-                <SidebarMenuItem key={chat.groupID}>
-                  <SidebarMenuButton
-                    onClick={() => setSelectedChat(chat.groupID)}
-                    isActive={selectedChat === chat.groupID}
-                  >
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    {chat.group_name}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <div className="px-3 py-1 mb-2">
+                <Input
+                  placeholder="Search chats..."
+                  className="pl-3 pr-3 py-2 bg-slate-100 dark:bg-slate-800"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              {chats
+                .filter((chat) =>
+                  chat.group_name
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase())
+                )
+                .map((chat) => (
+                  <div key={chat.groupID}>
+                    <hr className="mx-2 my-1" />
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => setSelectedChat(chat.groupID)}
+                        isActive={selectedChat === chat.groupID}
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        {chat.group_name}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </div>
+                ))}
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>

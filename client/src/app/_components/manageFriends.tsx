@@ -28,7 +28,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Check, CircleUser, MessageSquareShare, Plus, X } from "lucide-react";
+import { Check, MessageSquareShare, Plus, Users, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { users } from "../fakeData/fakeData";
 
@@ -41,10 +41,15 @@ export default function ManageFriends() {
         <SidebarMenu>
           <SidebarMenuItem>
             <DialogTrigger asChild>
-              <SidebarMenuButton className="w-full items-center">
-                <CircleUser className="h-4 w-4 text-primary font-bold" />
-                <div className="text-primary font-bold">Friends</div>
-              </SidebarMenuButton>
+              <div className="w-full items-center">
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2 hover:bg-primary/10"
+                >
+                  <Users className="h-4 w-4 text-primary" />
+                  <span>Friends</span>
+                </Button>
+              </div>
             </DialogTrigger>
             <DialogContent>
               <DialogTitle className="text-center">Manage Friends</DialogTitle>
