@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { LogOut, Menu, MessageSquare, Send, Settings } from "lucide-react";
+import { LogOut, Menu, MessageSquare, Send } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Ping from "./_components/ping";
 import ThemeToggle from "./_components/theme-toggle";
