@@ -12,7 +12,6 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
-use tower_http::cors::{Any, CorsLayer};
 
 use gauth::models::{Auth, Claims, User};
 use gauth::{jwt, validate_token};
