@@ -248,10 +248,23 @@ export default function Home() {
           <main className="flex-1 overflow-hidden px-6 pb-3 pt-1">
             <div
               ref={scrollRef}
-              className="h-full w-full overflow-y-auto scrollbar-hidden"
+              className="flex h-full w-full overflow-y-auto scrollbar-hidden"
             >
               <div className="flex flex-col gap-2 w-full">
-                {selectedChat && selectedChat !== -1 ? (
+                {!selectedChat ? (
+                  <div className="h-full flex flex-col items-center justify-center">
+                    <Card className="flex flex-col items-center max-w-md text-center p-8 ">
+                      <MessageSquare className="h-16 w-16 text-primary/80 mb-4" />
+                      <h2 className="text-2xl font-bold mb-2 text-primary">
+                        Welcome to GChat
+                      </h2>
+                      <p className="mb-6">
+                        Select a conversation from the sidebar to start
+                        chatting, or create a new conversation.
+                      </p>
+                    </Card>
+                  </div>
+                ) : selectedChat !== -1 ? (
                   chats.find((chat) => chat.groupID === selectedChat)
                     ?.groupID &&
                   message
