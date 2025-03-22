@@ -20,7 +20,6 @@ import {
 import {
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { PlusCircle } from "lucide-react";

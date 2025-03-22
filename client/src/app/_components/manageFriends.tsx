@@ -25,7 +25,6 @@ import {
 import {
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Check, MessageSquareShare, Plus, Users, X } from "lucide-react";

@@ -238,9 +238,6 @@ export default function Home() {
                 : "Select a chat"}
             </h1>
             <div className="flex flex-row items-center gap-3">
-              <p className="text-sm invisible md:visible">
-                Status: {connected ? "Connected" : "Disconnected"}
-              </p>
               <Ping connected={connected} />
               <ThemeToggle />
             </div>
@@ -372,7 +369,7 @@ export default function Home() {
                   placeholder="Type your message..."
                   disabled={!connected}
                 />
-                <Button className="w-[5%]" disabled={!inputMessage}>
+                <Button className="w-[5%]" disabled={!inputMessage.trim()}>
                   <Send />
                 </Button>
               </form>
