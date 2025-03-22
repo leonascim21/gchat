@@ -155,15 +155,15 @@ export default function Home() {
             <CreateChatForm />
             <ManageFriends />
           </div>
+          <div className="px-3 py-1 mb-2">
+            <Input
+              placeholder="Search chats..."
+              className="pl-3 pr-3 py-2 bg-slate-100 dark:bg-slate-800"
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           <SidebarContent>
             <SidebarMenu>
-              <div className="px-3 py-1 mb-2">
-                <Input
-                  placeholder="Search chats..."
-                  className="pl-3 pr-3 py-2 bg-slate-100 dark:bg-slate-800"
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
               {chats
                 .filter((chat) =>
                   chat.group_name
