@@ -6,71 +6,42 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { z } from "zod";
-import { useForm } from "@tanstack/react-form";
-import axios from "axios";
-import qs from "qs";
+
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Settings } from "lucide-react";
-
-const userSchema = z
-  .object({
-    email: z.string().email().min(1, "Email is required"),
-    username: z.string().min(1, "Username is required"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string().min(1, "Passwords do not match"),
-  })
-  .superRefine(({ confirmPassword, password }, ctx) => {
-    if (confirmPassword !== password) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Passwords do not match",
-        path: ["confirmPassword"],
-      });
-    }
-  });
+import { Circle, Settings } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import ThemeToggle from "./theme-toggle";
 
 export default function SettingsModal() {
-  const form = useForm({
-    defaultValues: {
-      email: "",
-      username: "",
-      password: "",
-      confirmPassword: "",
-    },
-    validators: {
-      onChange: userSchema,
-    },
-    onSubmit: async (e) => {
-      try {
-        const data = qs.stringify(e.value);
-        const response = await axios.post(
-          "http://206.189.202.251:3000/register",
-          data
-        );
-        console.log("Registration successful:", response.data);
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          console.error("Registration failed:", error);
-          if (error.response) {
-            console.error("Server response:", error.response.data);
-            console.error("Server status:", error.response.status);
-            console.error("Server headers:", error.response.headers);
-          } else if (error.request) {
-            console.error("No response received:", error.request);
-          } else {
-            console.error("Error setting up the request:", error.message);
-          }
-        } else {
-          console.error("An unexpected error occurred:", error);
-        }
-      }
-    },
-  });
+  const [theme, setTheme] = useState("theme-purple");
+
+  const changeTheme = (newTheme: any) => {
+    const classList = document.documentElement.classList;
+    classList.remove(
+      "theme-violet",
+      "theme-blue",
+      "theme-green",
+      "theme-orange",
+      "theme-red"
+    );
+    classList.add(newTheme);
+    setTheme(newTheme);
+    console.log(theme);
+    localStorage.setItem("theme", newTheme);
+  };
 
   return (
     <Dialog>
@@ -89,9 +60,57 @@ export default function SettingsModal() {
       <DialogContent className="sm:max-w-md">
         <DialogTitle className="text-2xl text-center">Settings</DialogTitle>
         <DialogDescription className="text-center">
-          Manage your account information
+          Manage your account information and preferences.
         </DialogDescription>
-        <div className="flex items-center justify-center">Coming Soon</div>
+        <div className="flex items-center justify-center">
+          <div className="flex flex-row gap-2 items-center">
+            <Label htmlFor="theme">Theme</Label>
+            <Select
+              name="theme"
+              onValueChange={(value) => changeTheme(`theme-${value}`)}
+              defaultValue={localStorage.getItem("theme")?.slice(6) ?? "violet"}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="violet">
+                    <div className="flex flex-row gap-1 items-center">
+                      <Circle className="h-4 w-4 mr-2 text-violet-500 fill-violet-500" />
+                      <p>Violet</p>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="blue">
+                    <div className="flex flex-row gap-1 items-center">
+                      <Circle className="h-4 w-4 mr-2 text-blue-500 fill-blue-500" />
+                      <p>Blue</p>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="green">
+                    <div className="flex flex-row gap-1 items-center">
+                      <Circle className="h-4 w-4 mr-2 text-green-500 fill-green-500" />
+                      <p>Green</p>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="red">
+                    <div className="flex flex-row gap-1 items-center">
+                      <Circle className="h-4 w-4 mr-2 text-red-500 fill-red-500" />
+                      <p>Red</p>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="orange">
+                    <div className="flex flex-row gap-1 items-center">
+                      <Circle className="h-4 w-4 mr-2 text-orange-500 fill-orange-500" />
+                      <p>Orange</p>
+                    </div>
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <ThemeToggle />
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

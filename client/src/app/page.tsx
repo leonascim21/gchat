@@ -3,10 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { LogOut, Menu, MessageSquare, Send, Settings } from "lucide-react";
+import { LogOut, Menu, MessageSquare, Send } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Ping from "./_components/ping";
-import ThemeToggle from "./_components/theme-toggle";
 import {
   Sidebar,
   SidebarContent,
@@ -183,7 +182,6 @@ export default function Home() {
                 Status: {connected ? "Connected" : "Disconnected"}
               </p>
               <Ping connected={connected} />
-              <ThemeToggle />
             </div>
           </header>
           <main className="flex-1 overflow-hidden px-6 pb-3 pt-1">
