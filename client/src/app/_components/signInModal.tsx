@@ -21,9 +21,10 @@ const userSchema = z.object({
 
 interface Props {
   showSignUp: () => void;
+  successfullSignIn: () => void;
 }
 
-export default function SignInModal({ showSignUp }: Props) {
+export default function SignInModal({ showSignUp, successfullSignIn }: Props) {
   const [open, setOpen] = useState(true);
 
   const form = useForm({
@@ -43,6 +44,7 @@ export default function SignInModal({ showSignUp }: Props) {
         );
         console.log("Login successful");
         localStorage.setItem("token", response.data.token);
+        successfullSignIn();
       } catch (error) {
         if (axios.isAxiosError(error)) {
           console.error("Registration failed:", error);

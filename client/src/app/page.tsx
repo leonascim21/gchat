@@ -59,7 +59,7 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      console.error("Token not found");
+      console.log("Token not found");
       setSignInVisible(true);
       setInitialLoad(false);
       return;
@@ -148,22 +148,6 @@ export default function Home() {
             <CreateChatForm />
             <ManageFriends />
           </div>
-          <div className="flex flex-row justify-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setSignUpVisible(true)}
-            >
-              Sign Up
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setSignInVisible(true)}
-            >
-              Sign In
-            </Button>
-          </div>
           <SidebarContent>
             <SidebarMenu>
               {chats.map((chat) => (
@@ -199,7 +183,14 @@ export default function Home() {
                   <SettingsModal />
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <LogOut className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem("token");
+                          setSignInVisible(true);
+                        }}
+                      >
+                        <LogOut className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Log Out</p>
@@ -351,7 +342,12 @@ export default function Home() {
               </form>
             )}
           </footer>
-          {signInVisible && <SignInModal showSignUp={switchAuthForm} />}
+          {signInVisible && (
+            <SignInModal
+              showSignUp={switchAuthForm}
+              successfullSignIn={() => setSignInVisible(false)}
+            />
+          )}
           {signUpVisible && <SignUpModal showSignIn={switchAuthForm} />}
         </SidebarInset>
       </SidebarProvider>
