@@ -3,18 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  LogOut,
-  LogOutIcon,
-  Menu,
-  MessageSquare,
-  Send,
-  Settings,
-  User,
-} from "lucide-react";
+import { LogOut, Menu, MessageSquare, Send } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Ping from "./_components/ping";
-import ThemeToggle from "./_components/theme-toggle";
 import {
   Sidebar,
   SidebarContent,
@@ -38,6 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import SettingsModal from "./_components/settingsModal";
 
 const chats = groups;
 const message = messages;
@@ -158,14 +150,7 @@ export default function Home() {
               </div>
               <div className="flex flex-row items-center gap-4">
                 <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Settings className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Settings</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <SettingsModal />
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <LogOut className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
@@ -197,7 +182,6 @@ export default function Home() {
                 Status: {connected ? "Connected" : "Disconnected"}
               </p>
               <Ping connected={connected} />
-              <ThemeToggle />
             </div>
           </header>
           <main className="flex-1 overflow-hidden px-6 pb-3 pt-1">
