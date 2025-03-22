@@ -67,7 +67,7 @@ export default function Home() {
       return;
     }
     axios
-      .get(`http://0.0.0.0:3001/check-token?token=${token}`)
+      .get(`https://api.gchat.cloud/check-token?token=${token}`)
       .then((response) => {
         if (response.data.valid) {
           console.log("Token is valid");

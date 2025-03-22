@@ -52,7 +52,7 @@ export default function SignUpModal({ showSignIn }: Props) {
       try {
         const data = qs.stringify(e.value);
         const response = await axios.post(
-          "http://206.189.202.251:3000/register",
+          "https://api.gchat.cloud/register",
           data
         );
         console.log("Registration successful:", response.data);

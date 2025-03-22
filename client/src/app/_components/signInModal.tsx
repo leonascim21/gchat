@@ -39,7 +39,7 @@ export default function SignInModal({ showSignUp, successfullSignIn }: Props) {
       try {
         const data = qs.stringify(e.value);
         const response = await axios.post(
-          "http://206.189.202.251:3000/login",
+          "https://api.gchat.cloud/login",
           data
         );
         console.log("Login successful");
