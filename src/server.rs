@@ -83,11 +83,6 @@ async fn main() {
 
     let state = std::sync::Arc::new(state);
 
-    let cors = CorsLayer::new()
-    .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::PUT])
-    .allow_origin(Any);
-
-
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
         .route("/ws", get(ws_handler))
@@ -101,12 +96,10 @@ async fn main() {
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
-        // Add our custom CORS middleware
-        .layer(cors)
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
