@@ -83,21 +83,14 @@ async fn main() {
 
     let state = std::sync::Arc::new(state);
 
-    // Configure CORS with function-based origin matching to avoid duplicate headers
+    // Configure CORS with proper origin matching
     let cors = CorsLayer::new()
-        .allow_origin(tower_http::cors::Any::func(move |origin, _| {
-            // Check if origin matches any of our allowed origins
-            let origin_str = origin.to_str().unwrap_or("");
-            if origin_str.starts_with("http://localhost:3000") ||
-               origin_str == "https://www.gchat.cloud" ||
-               origin_str == "https://gchat.cloud" ||
-               origin_str == "https://api.gchat.cloud" {
-                // Return the actual origin that matched
-                Some(origin.clone())
-            } else {
-                None
-            }
-        }))
+        .allow_origin([
+            "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+            "https://www.gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "https://gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "https://api.gchat.cloud".parse::<HeaderValue>().unwrap(),
+        ])
         .allow_methods([
             Method::GET,
             Method::POST,
