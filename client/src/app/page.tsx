@@ -109,7 +109,7 @@ export default function Home() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const ws = new WebSocket(`ws://localhost:3001/ws?token=${token}`);
+    const ws = new WebSocket(`wss://ws.gchat.cloud/ws?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -129,7 +129,7 @@ export default function Home() {
     return () => {
       ws.close();
     };
-  }, []);
+  }, [isAuth]);
 
   const logOut = () => {
     localStorage.removeItem("token");
