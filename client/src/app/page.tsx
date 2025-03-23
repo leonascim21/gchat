@@ -97,6 +97,8 @@ export default function Home() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    if (!token || !isAuth) return;
+    
     axios
       .get(`https://api.gchat.cloud/get-all-messages?token=${token}`)
       .then((response) => {
@@ -105,10 +107,12 @@ export default function Home() {
       .catch((error) => {
         console.error("Error fetching messages:", error);
       });
-  }, []);
+  }, [isAuth]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    if (!token || !isAuth) return;
+    
     const ws = new WebSocket(`wss://ws.gchat.cloud/ws?token=${token}`);
     wsRef.current = ws;
 
