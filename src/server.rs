@@ -12,6 +12,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
+use tower_http::cors::{Any, CorsLayer};
 
 use gauth::models::{Auth, Claims, User};
 use gauth::{jwt, validate_token};
@@ -82,6 +83,28 @@ async fn main() {
 
     let state = std::sync::Arc::new(state);
 
+    let allowed_origins = vec![
+    "http://localhost:300".parse::<HeaderValue>().unwrap(),
+    "https://www.gchat.cloud".parse::<HeaderValue>().unwrap(),
+    "https://gchat.cloud".parse::<HeaderValue>().unwrap(),
+    ];
+
+    let cors = CorsLayer::new()
+    .allow_origin(allowed_origins)
+    .allow_methods([
+        Method::GET,
+        Method::POST,
+        Method::PUT,
+        Method::DELETE,
+        Method::OPTIONS,
+    ])        
+    .allow_headers([
+        header::CONTENT_TYPE,
+        header::AUTHORIZATION,
+        header::ACCEPT,
+    ])
+    .allow_credentials(true);
+
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
         .route("/ws", get(ws_handler))
@@ -96,6 +119,7 @@ async fn main() {
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
+        .layer(cors)
         .layer(Extension(auth))
         .with_state(state);
 
