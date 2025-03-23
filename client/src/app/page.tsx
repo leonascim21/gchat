@@ -175,7 +175,12 @@ export default function Home() {
     return (
       <div>
         {showAuthModal && (
-          <AuthModals hideAuthModal={() => setShowAuthModal(false)} />
+          <AuthModals
+            hideAuthModal={() => {
+              setIsAuth(true);
+              setShowAuthModal(false);
+            }}
+          />
         )}
       </div>
     );
