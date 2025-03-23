@@ -247,6 +247,17 @@ async fn ws_handler(
 }
 
 async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc<ServerState>) {
+
+    //Parse user_id from jwt sub
+    let user_id: i32 = match user_id.parse() {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("Failed to parse user id: {}", e);
+            return;
+        }
+    };
+
+
     let (mut sender, mut receiver) = socket.split();
     let mut msg_rx = state.tx.subscribe();
 
@@ -265,10 +276,13 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
                 println!("[Broadcasting]: {}", text_content);
 
                 // Store in database
-                if let Err(e) =
-                    sqlx::query!("INSERT INTO messages (content) VALUES ($1)", text_content)
-                        .execute(&state.db)
-                        .await
+                if let Err(e) = sqlx::query!(
+                    "INSERT INTO messages (user_id, content) VALUES ($1, $2)",
+                    user_id, 
+                    text_content,
+                )
+                .execute(&state.db)
+                .await
                 {
                     eprintln!("Failed to store message: {}", e);
                 }
