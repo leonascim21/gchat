@@ -51,22 +51,7 @@ export default function Home() {
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   useState<number | null>(null);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      content: "salve menor",
-      id: 5,
-      timestamp: "2025-03-23 01:05:51.630004 UTC",
-      user_id: 119,
-      username: "teste2",
-    },
-    {
-      content: "salve",
-      id: 6,
-      timestamp: "2025-03-23 01:52:01.176974 UTC",
-      user_id: 119,
-      username: "teste2",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -108,9 +93,7 @@ export default function Home() {
     axios
       .get(`https://api.gchat.cloud/get-all-messages?token=${token}`)
       .then((response) => {
-        console.log("Response:", response.data);
-        const messages = response.data.messages;
-        setMessages(messages);
+        setMessages(response.data);
       })
       .catch((error) => {
         console.error("Error fetching messages:", error);
