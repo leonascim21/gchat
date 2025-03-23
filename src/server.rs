@@ -84,9 +84,11 @@ async fn main() {
     let state = std::sync::Arc::new(state);
 
     let allowed_origins = vec![
-    "http://localhost:300".parse::<HeaderValue>().unwrap(),
+    "http://localhost:3000".parse::<HeaderValue>().unwrap(),
     "https://www.gchat.cloud".parse::<HeaderValue>().unwrap(),
     "https://gchat.cloud".parse::<HeaderValue>().unwrap(),
+    "https://api.gchat.cloud".parse::<HeaderValue>().unwrap(),
+    "wss://ws.gchat.cloud".parse::<HeaderValue>().unwrap(),
     ];
 
     let cors = CorsLayer::new()
