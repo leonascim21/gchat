@@ -91,17 +91,19 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     axios
-      .get(`http://localhost:3001/get-all-messages?token=${token}`)
+      .get(`https://api.gchat.cloud/get-all-messages?token=${token}`)
       .then((response) => {
         console.log("Response:", response.data);
         const messages = response.data.messages;
         setMessages(messages);
+      })
+      .catch((error) => {
+        console.error("Error fetching messages:", error);
       });
   }, []);
 
   useEffect(() => {
-    const token =
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMTkiLCJleHAiOjE3NDMxMjc0Mzl9.9iHmwLLubEw_SiDildsXCE9K_C374IpDjjEJFGrVGdU";
+    const token = localStorage.getItem("token");
     const ws = new WebSocket(`wss://ws.gchat.cloud/ws?token=${token}`);
     wsRef.current = ws;
 
