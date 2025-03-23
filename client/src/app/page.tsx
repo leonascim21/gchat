@@ -29,7 +29,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import SettingsModal from "./_components/settingsModal";
-import { generateProfilePictureSVG, usernameToColor } from "./utils";
+import {
+  generateProfilePictureSVG,
+  getIdFromJWT,
+  usernameToColor,
+} from "./utils";
 import axios from "axios";
 import AuthModals from "./_components/authModals";
 
@@ -55,6 +59,8 @@ export default function Home() {
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
+
   const wsRef = useRef<WebSocket | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -62,7 +68,7 @@ export default function Home() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [selectedChat]);
+  }, [selectedChat, messages]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -76,6 +82,7 @@ export default function Home() {
       .get(`https://api.gchat.cloud/check-token?token=${token}`)
       .then((response) => {
         if (response.data.valid) {
+          setIsAuth(true);
           console.log("Token is valid");
         } else {
           setShowAuthModal(true);
@@ -102,7 +109,7 @@ export default function Home() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const ws = new WebSocket(`wss://ws.gchat.cloud/ws?token=${token}`);
+    const ws = new WebSocket(`ws://localhost:3001/ws?token=${token}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -111,7 +118,7 @@ export default function Home() {
     };
 
     ws.onmessage = (event) => {
-      setMessages((prev) => [...prev, event.data]);
+      setMessages((prev) => [...prev, JSON.parse(event.data)]);
     };
 
     ws.onclose = () => {
@@ -123,6 +130,12 @@ export default function Home() {
       ws.close();
     };
   }, []);
+
+  const logOut = () => {
+    localStorage.removeItem("token");
+    setShowAuthModal(true);
+    setIsAuth(false);
+  };
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,6 +167,16 @@ export default function Home() {
             Loading GChat...
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (!isAuth) {
+    return (
+      <div>
+        {showAuthModal && (
+          <AuthModals hideAuthModal={() => setShowAuthModal(false)} />
+        )}
       </div>
     );
   }
@@ -218,12 +241,7 @@ export default function Home() {
                   <SettingsModal />
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button
-                        onClick={() => {
-                          localStorage.removeItem("token");
-                          setShowAuthModal(true);
-                        }}
-                      >
+                      <button onClick={logOut}>
                         <LogOut className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
                       </button>
                     </TooltipTrigger>
@@ -345,7 +363,7 @@ export default function Home() {
                 ) : (
                   <div className="flex flex-col gap-2 w-full">
                     {messages.map((message) =>
-                      message.user_id === 119 ? (
+                      message.user_id === getIdFromJWT() ? (
                         <div key={message.id} className="flex justify-end">
                           <div className="flex flex-col">
                             <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full ml-12">
@@ -425,9 +443,6 @@ export default function Home() {
               </form>
             )}
           </footer>
-          {showAuthModal && (
-            <AuthModals hideAuthModal={() => setShowAuthModal(false)} />
-          )}
         </SidebarInset>
       </SidebarProvider>
     </div>

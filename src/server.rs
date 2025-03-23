@@ -337,20 +337,43 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
             if let Message::Text(text_content) = msg {
                 println!("[Broadcasting]: {}", text_content);
 
-                // Store in database
-                if let Err(e) = sqlx::query!(
-                    "INSERT INTO messages (user_id, content) VALUES ($1, $2)",
-                    user_id, 
+                // Store in database and return inserted record + username
+                let result = sqlx::query!(
+                    r#"
+                    WITH inserted AS (
+                      INSERT INTO messages (user_id, content)
+                      VALUES ($1, $2)
+                      RETURNING id, user_id, content, timestamp
+                    )
+                    SELECT i.id, i.user_id, i.content, i.timestamp, u.username
+                    FROM inserted i
+                    JOIN users u ON i.user_id = u.id;
+                    "#,
+                    user_id,
                     text_content,
                 )
-                .execute(&state.db)
-                .await
-                {
-                    eprintln!("Failed to store message: {}", e);
+                .fetch_one(&state.db)
+                .await;
+                
+                // convert result to json and send to all clients
+                match result {
+                    Ok(record) => {
+                        let message = json!({
+                            "id": record.id,
+                            "user_id": record.user_id,
+                            "content": record.content,
+                            "timestamp": record.timestamp.to_string(),
+                            "username": record.username
+                        });
+                        
+                        if let Err(e) = state.tx.send(message.to_string()) {
+                            eprintln!("Failed to broadcast message: {}", e);
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Failed to store message: {}", e);
+                    }
                 }
-
-                // Broadcast to all clients
-                state.tx.send(text_content);
             }
         }
     });
