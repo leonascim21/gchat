@@ -83,29 +83,28 @@ async fn main() {
 
     let state = std::sync::Arc::new(state);
 
-    let allowed_origins = vec![
-    "http://localhost:3000".parse::<HeaderValue>().unwrap(),
-    "https://www.gchat.cloud".parse::<HeaderValue>().unwrap(),
-    "https://gchat.cloud".parse::<HeaderValue>().unwrap(),
-    "https://api.gchat.cloud".parse::<HeaderValue>().unwrap(),
-    "wss://ws.gchat.cloud".parse::<HeaderValue>().unwrap(),
-    ];
-
+    // Configure CORS with proper origin matching
     let cors = CorsLayer::new()
-    .allow_origin(allowed_origins)
-    .allow_methods([
-        Method::GET,
-        Method::POST,
-        Method::PUT,
-        Method::DELETE,
-        Method::OPTIONS,
-    ])        
-    .allow_headers([
-        header::CONTENT_TYPE,
-        header::AUTHORIZATION,
-        header::ACCEPT,
-    ])
-    .allow_credentials(true);
+        .allow_origin([
+            "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+            "https://www.gchat.cloud".parse::<HeaderValue>().unwrap(), 
+            "https://gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "https://api.gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "wss://ws.gchat.cloud".parse::<HeaderValue>().unwrap(),
+        ])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])        
+        .allow_headers([
+            header::CONTENT_TYPE,
+            header::AUTHORIZATION,
+            header::ACCEPT,
+        ])
+        .allow_credentials(true);
 
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
