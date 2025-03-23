@@ -85,7 +85,15 @@ async fn main() {
 
     // Configure CORS with proper origin matching
     let cors = CorsLayer::new()
-        .allow_origin(Any)  // Allow any origin to connect
+        .allow_origin([
+            "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+            "https://www.gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "https://gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "https://api.gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "http://www.gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "http://gchat.cloud".parse::<HeaderValue>().unwrap(),
+            "http://api.gchat.cloud".parse::<HeaderValue>().unwrap(),
+        ])
         .allow_methods([
             Method::GET,
             Method::POST,
