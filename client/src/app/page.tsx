@@ -40,7 +40,7 @@ const user = users;
 
 interface Message {
   id: number;
-  userId: number;
+  user_id: number;
   username: string;
   content: string;
   timestamp: string;
@@ -51,7 +51,22 @@ export default function Home() {
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   useState<number | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      content: "salve menor",
+      id: 5,
+      timestamp: "2025-03-23 01:05:51.630004 UTC",
+      user_id: 119,
+      username: "teste2",
+    },
+    {
+      content: "salve",
+      id: 6,
+      timestamp: "2025-03-23 01:52:01.176974 UTC",
+      user_id: 119,
+      username: "teste2",
+    },
+  ]);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -347,7 +362,7 @@ export default function Home() {
                 ) : (
                   <div className="flex flex-col gap-2 w-full">
                     {messages.map((message) =>
-                      message.userId === 119 ? (
+                      message.user_id === 119 ? (
                         <div key={message.id} className="flex justify-end">
                           <div className="flex flex-col">
                             <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full ml-12">
