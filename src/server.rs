@@ -228,6 +228,7 @@ async fn handle_registration(
         id: None,
         username: form.username,
         email: Some(form.email),
+        profile_picture: None,
         password: form.password, // Note: You should hash this password
         created_at: None,
     };
@@ -275,6 +276,7 @@ async fn handle_login(
         id: None,
         username: form.username,
         email: None,
+        profile_picture: None,
         password: form.password,
         created_at: None,
     };
