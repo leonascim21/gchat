@@ -38,12 +38,20 @@ const message = messages;
 const groupMessage = groupMessages;
 const user = users;
 
+interface Message {
+  id: number;
+  userId: number;
+  username: string;
+  content: string;
+  timestamp: string;
+}
+
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   useState<number | null>(null);
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -78,6 +86,17 @@ export default function Home() {
         console.error("Error checking token:", error);
       })
       .finally(() => setInitialLoad(false));
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    axios
+      .get(`http://localhost:3001/get-all-messages?token=${token}`)
+      .then((response) => {
+        console.log("Response:", response.data);
+        const messages = response.data.messages;
+        setMessages(messages);
+      });
   }, []);
 
   useEffect(() => {
@@ -326,19 +345,57 @@ export default function Home() {
                 ) : (
                   <div className="flex flex-col gap-2 w-full">
                     {messages.map((message, index) =>
-                      index % 2 == 0 ? (
-                        <div key={index} className="flex justify-end">
+                      message.userId === 119 ? (
+                        <div key={message.id} className="flex justify-end">
                           <div className="flex flex-col">
                             <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full ml-12">
-                              {message}
+                              {message.content}
                             </Card>
+                            <p className="text-sm opacity-40 text-right pr-3">
+                              {new Date(message.timestamp).toLocaleDateString(
+                                [],
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              ) +
+                                " " +
+                                new Date(message.timestamp).toLocaleTimeString(
+                                  [],
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  }
+                                )}
+                            </p>
                           </div>
                         </div>
                       ) : (
-                        <div key={index} className="flex justify-start">
+                        <div
+                          key={message.id}
+                          className="flex flex-col justify-start"
+                        >
+                          <p className="text-sm pl-3">{message.username}</p>
                           <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full mr-12">
-                            {message}
+                            {message.content}
                           </Card>
+                          <p className="text-sm opacity-40 pl-3">
+                            {new Date(message.timestamp).toLocaleDateString(
+                              [],
+                              {
+                                month: "short",
+                                day: "numeric",
+                              }
+                            ) +
+                              " " +
+                              new Date(message.timestamp).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                          </p>
                         </div>
                       )
                     )}

@@ -90,6 +90,7 @@ async fn main() {
             get(|| async { Html(include_str!("../templates/login.html")) }),
         )
         .route("/login", post(handle_login))
+        .route("/get-all-messages", get(get_all_messages))
         .route("/register", post(handle_registration))
         .route("/check-token", get(check_token))
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
@@ -103,6 +104,67 @@ async fn main() {
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
+
+async fn get_all_messages(
+    State(state): State<Arc<ServerState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let token = params.get("token");
+    if token.is_none() {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({ "error": "Missing token" })),
+        )
+            .into_response();
+    }
+    
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    match validate_token(token.unwrap(), jwt_key).await {
+        Ok(_) => {
+            let result = sqlx::query!(
+                r#"
+                SELECT m.id, m.content, m.user_id, m.timestamp, u.username 
+                FROM messages m
+                JOIN users u ON m.user_id = u.id
+                ORDER BY m.timestamp
+                "#
+            )
+            .fetch_all(&state.db)
+            .await;
+            
+            match result {
+                Ok(messages) => {
+                    let message_data = messages.iter().map(|m| {
+                        json!({
+                            "id": m.id,
+                            "content": m.content,
+                            "user_id": m.user_id,
+                            "username": m.username,
+                            "timestamp": m.timestamp.to_string(),
+                        })
+                    }).collect::<Vec<_>>();
+                    
+                    (StatusCode::OK, Json(message_data)).into_response()
+                },
+                Err(err) => {
+                    eprintln!("Database error: {}", err);
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({ "error": "Failed to fetch messages" })),
+                    ).into_response()
+                }
+            }
+        },
+        Err(_) => {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({ "error": "Invalid token" })),
+            )
+            .into_response()
+        }
+    }
+}
+
 
 async fn check_token(
     Extension(auth): Extension<Arc<Auth>>,
