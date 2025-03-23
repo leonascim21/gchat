@@ -21,8 +21,6 @@ import {
 import CreateChatForm from "./_components/createChatForm";
 import { groupMessages, groups, messages, users } from "./fakeData/fakeData";
 import ManageFriends from "./_components/manageFriends";
-import SignInModal from "./_components/signInModal";
-import SignUpModal from "./_components/signupModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -33,6 +31,7 @@ import {
 import SettingsModal from "./_components/settingsModal";
 import { generateProfilePictureSVG, usernameToColor } from "./utils";
 import axios from "axios";
+import AuthModals from "./_components/authModals";
 
 const chats = groups;
 const message = messages;
@@ -47,8 +46,7 @@ export default function Home() {
   const [messages, setMessages] = useState<string[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
-  const [signInVisible, setSignInVisible] = useState(false);
-  const [signUpVisible, setSignUpVisible] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -62,7 +60,7 @@ export default function Home() {
     const token = localStorage.getItem("token");
     if (!token) {
       console.log("Token not found");
-      setSignInVisible(true);
+      setShowAuthModal(true);
       setInitialLoad(false);
       return;
     }
@@ -72,7 +70,7 @@ export default function Home() {
         if (response.data.valid) {
           console.log("Token is valid");
         } else {
-          setSignInVisible(true);
+          setShowAuthModal(true);
           console.log("Token is invalid");
         }
       })
@@ -81,11 +79,6 @@ export default function Home() {
       })
       .finally(() => setInitialLoad(false));
   }, []);
-
-  const switchAuthForm = () => {
-    setSignInVisible(!signInVisible);
-    setSignUpVisible(!signUpVisible);
-  };
 
   useEffect(() => {
     const token =
@@ -209,7 +202,7 @@ export default function Home() {
                       <button
                         onClick={() => {
                           localStorage.removeItem("token");
-                          setSignInVisible(true);
+                          setShowAuthModal(true);
                         }}
                       >
                         <LogOut className="h-5 w-5 font-semibold hover:text-primary hover:cursor-pointer" />
@@ -375,13 +368,9 @@ export default function Home() {
               </form>
             )}
           </footer>
-          {signInVisible && (
-            <SignInModal
-              showSignUp={switchAuthForm}
-              successfullSignIn={() => setSignInVisible(false)}
-            />
+          {showAuthModal && (
+            <AuthModals hideAuthModal={() => setShowAuthModal(false)} />
           )}
-          {signUpVisible && <SignUpModal showSignIn={switchAuthForm} />}
         </SidebarInset>
       </SidebarProvider>
     </div>

@@ -98,7 +98,7 @@ async fn main() {
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -126,7 +126,7 @@ async fn check_token(
 async fn handle_registration(
     Extension(auth): Extension<Arc<Auth>>,
     Form(form): Form<RegisterForm>,
-) -> Result<Redirect, (StatusCode, String)> {
+) -> impl IntoResponse {
     // Validate passwords match
     if form.password != form.confirm_password {
         return Err((
@@ -146,7 +146,32 @@ async fn handle_registration(
 
     // Register the user
     match auth.register_user(user).await {
-        Ok(_) => Ok(Redirect::to("/login")),
+        Ok(new_user) =>  {
+
+            let user_id = new_user
+                .id
+                .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "No user ID".into()))?;
+
+            let claims = Claims {
+                sub: user_id.to_string(),
+                exp: (SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    + (60 * 60 * 24 * 7)),
+            };
+
+            let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+            let token = jsonwebtoken::encode(
+                &jsonwebtoken::Header::default(),
+                &claims,
+                &jsonwebtoken::EncodingKey::from_secret(jwt_key.as_bytes()),
+            )
+            .unwrap();
+
+            // Return JSON with token
+            Ok(Json(json!({ "token": token })))
+        }
         Err(_) => Err((
             StatusCode::BAD_REQUEST,
             "Username or email already exists".to_string(),

@@ -33,9 +33,10 @@ const userSchema = z
 
 interface Props {
   showSignIn: () => void;
+  successfullSignUp: () => void;
 }
 
-export default function SignUpModal({ showSignIn }: Props) {
+export default function SignUpModal({ showSignIn, successfullSignUp }: Props) {
   const [open, setOpen] = useState(true);
 
   const form = useForm({
@@ -55,7 +56,9 @@ export default function SignUpModal({ showSignIn }: Props) {
           "https://api.gchat.cloud/register",
           data
         );
-        console.log("Registration successful:", response.data);
+        console.log("Registration successful");
+        localStorage.setItem("token", response.data.token);
+        successfullSignUp();
       } catch (error) {
         if (axios.isAxiosError(error)) {
           console.error("Registration failed:", error);
