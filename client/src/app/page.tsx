@@ -344,7 +344,7 @@ export default function Home() {
                     )
                 ) : (
                   <div className="flex flex-col gap-2 w-full">
-                    {messages.map((message, index) =>
+                    {messages.map((message) =>
                       message.userId === 119 ? (
                         <div key={message.id} className="flex justify-end">
                           <div className="flex flex-col">
