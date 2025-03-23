@@ -212,7 +212,6 @@ export default function Home() {
                 )
                 .map((chat) => (
                   <div key={chat.groupID}>
-                    <hr className="mx-2 my-1" />
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         onClick={() => setSelectedChat(chat.groupID)}
@@ -325,7 +324,7 @@ export default function Home() {
                                   day: "numeric",
                                 }
                               ) +
-                                " " +
+                                " • " +
                                 new Date(message.sent_at).toLocaleTimeString(
                                   [],
                                   {
@@ -356,7 +355,7 @@ export default function Home() {
                               month: "short",
                               day: "numeric",
                             }) +
-                              " " +
+                              " • " +
                               new Date(message.sent_at).toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
@@ -382,7 +381,7 @@ export default function Home() {
                                   day: "numeric",
                                 }
                               ) +
-                                " " +
+                                "  • " +
                                 new Date(message.timestamp).toLocaleTimeString(
                                   [],
                                   {
@@ -410,7 +409,7 @@ export default function Home() {
                                 day: "numeric",
                               }
                             ) +
-                              " " +
+                              " • " +
                               new Date(message.timestamp).toLocaleTimeString(
                                 [],
                                 {
