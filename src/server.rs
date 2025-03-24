@@ -235,8 +235,20 @@ async fn send_friend_request(
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
 
     // Validate the token.
-    if validate_token(&form.token, jwt_key).await.is_err() {
-        return (StatusCode::UNAUTHORIZED, Json(json!({"message": "Unauthorized" })));
+    let claims = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims,
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Unauthorized"})),
+            );
+        }
+    };
+    if claims.sub != form.sender_id.to_string() {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({"message": "Unauthorized"})),
+        );
     }
 
     let result = sqlx::query!(
