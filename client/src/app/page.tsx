@@ -115,7 +115,7 @@ export default function Home() {
       });
 
     axios
-      .get(`http://api.gchat.cloud/get-user-info?token=${token}`)
+      .get(`https://api.gchat.cloud/get-user-info?token=${token}`)
       .then((response) => {
         setUser(response.data);
       })
