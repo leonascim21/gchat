@@ -29,11 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import SettingsModal from "./_components/settingsModal";
-import {
-  generateProfilePictureSVG,
-  getIdFromJWT,
-  usernameToColor,
-} from "./utils";
+import { getIdFromJWT, usernameToColor } from "./utils";
 import axios from "axios";
 import AuthModals from "./_components/authModals";
 
