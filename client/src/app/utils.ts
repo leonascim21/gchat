@@ -7,10 +7,10 @@ export function usernameToColor(username: string): string {
 
   const hue = Math.abs(hash) % 360;
 
-  return `hsl(${hue}, 70%, 70%)`;
+  return `hsl(${hue}, 60%, 60%)`;
 }
 
-export function generateProfilePictureSVG() {
+export function generateProfilePictureSVG(username: string) {
   const gridSize = 10;
   const cellSize = 50;
 
@@ -18,7 +18,7 @@ export function generateProfilePictureSVG() {
   const height = gridSize * cellSize;
 
   const bgColor = "#F0F0F0";
-  const patternColor = `${usernameToColor("username")}`;
+  const patternColor = `${usernameToColor(username)}`;
 
   const halfCols = Math.ceil(gridSize / 2);
   const pattern: boolean[][] = [];

@@ -40,7 +40,7 @@ import AuthModals from "./_components/authModals";
 const chats = groups;
 const message = messages;
 const groupMessage = groupMessages;
-const user = users;
+const usera = users;
 
 interface Message {
   id: number;
@@ -48,6 +48,14 @@ interface Message {
   username: string;
   content: string;
   timestamp: string;
+  profile_picture: string;
+}
+
+interface User {
+  userID: number;
+  username: string;
+  profile_picture: string;
+  email: string;
 }
 
 export default function Home() {
@@ -56,6 +64,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -90,6 +99,7 @@ export default function Home() {
         }
       })
       .catch((error) => {
+        setShowAuthModal(true);
         console.error("Error checking token:", error);
       })
       .finally(() => setInitialLoad(false));
@@ -98,7 +108,7 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || !isAuth) return;
-    
+
     axios
       .get(`https://api.gchat.cloud/get-all-messages?token=${token}`)
       .then((response) => {
@@ -107,12 +117,21 @@ export default function Home() {
       .catch((error) => {
         console.error("Error fetching messages:", error);
       });
+
+    axios
+      .get(`http://api.gchat.cloud/get-user-info?token=${token}`)
+      .then((response) => {
+        setUser(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching user:", error);
+      });
   }, [isAuth]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token || !isAuth) return;
-    
+
     const ws = new WebSocket(`wss://ws.gchat.cloud/ws?token=${token}`);
     wsRef.current = ws;
 
@@ -234,14 +253,16 @@ export default function Home() {
             <div className="flex flex-row justify-between gap-2">
               <div className="flex flex-row items-center gap-2">
                 <Avatar>
-                  <AvatarImage src={generateProfilePictureSVG()} />
-                  <AvatarFallback>CN</AvatarFallback>
+                  <AvatarImage src={user?.profile_picture} />
+                  <AvatarFallback>
+                    {user?.username.substring(0, 2).toUpperCase() ?? ""}
+                  </AvatarFallback>
                 </Avatar>
                 <p
                   className="font-semibold"
-                  style={{ color: usernameToColor("username") }}
+                  style={{ color: usernameToColor(user?.username ?? "") }}
                 >
-                  username
+                  {user?.username ?? "unknown"}
                 </p>
               </div>
               <div className="flex flex-row items-center gap-4">
@@ -346,7 +367,7 @@ export default function Home() {
                         >
                           <p className="text-sm pl-3">
                             {
-                              user.find(
+                              usera.find(
                                 (person) => person.userID === message.senderID
                               )?.username
                             }
@@ -374,7 +395,7 @@ export default function Home() {
                       message.user_id === getIdFromJWT() ? (
                         <div key={message.id} className="flex justify-end">
                           <div className="flex flex-col">
-                            <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full ml-12">
+                            <Card className="bg-primary border-0 shadow-none py-2 px-4 text-white w-fit rounded-tr-none ml-12 text-sm">
                               {message.content}
                             </Card>
                             <p className="text-sm opacity-40 text-right pr-3">
@@ -397,31 +418,44 @@ export default function Home() {
                           </div>
                         </div>
                       ) : (
-                        <div
-                          key={message.id}
-                          className="flex flex-col justify-start"
-                        >
-                          <p className="text-sm pl-3">{message.username}</p>
-                          <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full mr-12">
-                            {message.content}
-                          </Card>
-                          <p className="text-sm opacity-40 pl-3">
-                            {new Date(message.timestamp).toLocaleDateString(
-                              [],
-                              {
-                                month: "short",
-                                day: "numeric",
-                              }
-                            ) +
-                              " • " +
-                              new Date(message.timestamp).toLocaleTimeString(
-                                [],
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
-                              )}
-                          </p>
+                        <div key={message.id} className="flex justify-start">
+                          <div className={`flex gap-3 max-w-[80%] flex-row`}>
+                            <Avatar className="h-9 w-9 mt-1">
+                              <AvatarImage src={message.profile_picture} />
+                              <AvatarFallback>
+                                {message.username.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <p
+                                className="text-sm"
+                                style={{
+                                  color: usernameToColor(message.username),
+                                }}
+                              >
+                                {message.username}
+                              </p>
+                              <Card className="bg-slate-300 border-0 shadow-none py-2 px-4 text-black w-fit rounded-tl-none text-sm">
+                                {message.content}
+                              </Card>
+                              <p className="text-sm opacity-40">
+                                {new Date(message.timestamp).toLocaleDateString(
+                                  [],
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                ) +
+                                  " • " +
+                                  new Date(
+                                    message.timestamp
+                                  ).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       )
                     )}
