@@ -13,6 +13,7 @@ import { z } from "zod";
 import { useForm } from "@tanstack/react-form";
 import axios from "axios";
 import qs from "qs";
+import { generateProfilePictureSVG } from "../utils";
 
 const userSchema = z
   .object({
@@ -51,10 +52,17 @@ export default function SignUpModal({ showSignIn, successfullSignUp }: Props) {
     },
     onSubmit: async (e) => {
       try {
-        const data = qs.stringify(e.value);
+        const data = {
+          email: e.value.email,
+          username: e.value.username,
+          password: e.value.password,
+          confirmPassword: e.value.confirmPassword,
+          profilePicture: generateProfilePictureSVG(e.value.username),
+        };
+        const payload = qs.stringify(data);
         const response = await axios.post(
           "https://api.gchat.cloud/register",
-          data
+          payload
         );
         console.log("Registration successful");
         localStorage.setItem("token", response.data.token);

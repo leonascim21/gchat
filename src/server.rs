@@ -47,6 +47,8 @@ struct RegisterForm {
     password: String,
     #[serde(rename = "confirmPassword")]
     confirm_password: String,
+    #[serde(rename = "profilePicture")]
+    profile_picture: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -231,7 +233,7 @@ async fn handle_registration(
         id: None,
         username: form.username,
         email: Some(form.email),
-        profile_picture: None,
+        profile_picture: form.profile_picture,
         password: form.password, // Note: You should hash this password
         created_at: None,
     };
