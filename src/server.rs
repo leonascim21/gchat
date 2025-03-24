@@ -119,6 +119,7 @@ async fn main() {
         .route("/get-all-messages", get(get_all_messages))
         .route("/register", post(handle_registration))
         .route("/check-token", get(check_token))
+        .route("/get-user-info", get(get_user_info))
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
@@ -126,7 +127,7 @@ async fn main() {
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -150,7 +151,7 @@ async fn get_all_messages(
         Ok(_) => {
             let result = sqlx::query!(
                 r#"
-                SELECT m.id, m.content, m.user_id, m.timestamp, u.username 
+                SELECT m.id, m.content, m.user_id, m.timestamp, u.username, u.profile_picture 
                 FROM messages m
                 JOIN users u ON m.user_id = u.id
                 ORDER BY m.timestamp
@@ -168,6 +169,7 @@ async fn get_all_messages(
                             "user_id": m.user_id,
                             "username": m.username,
                             "timestamp": m.timestamp.to_string(),
+                            "profile_picture": m.profile_picture
                         })
                     }).collect::<Vec<_>>();
                     
@@ -374,7 +376,7 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
                       VALUES ($1, $2)
                       RETURNING id, user_id, content, timestamp
                     )
-                    SELECT i.id, i.user_id, i.content, i.timestamp, u.username
+                    SELECT i.id, i.user_id, i.content, i.timestamp, u.username, u.profile_picture
                     FROM inserted i
                     JOIN users u ON i.user_id = u.id;
                     "#,
@@ -392,7 +394,8 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
                             "user_id": record.user_id,
                             "content": record.content,
                             "timestamp": record.timestamp.to_string(),
-                            "username": record.username
+                            "username": record.username,
+                            "profile_picture": record.profile_picture
                         });
                         
                         if let Err(e) = state.tx.send(message.to_string()) {
@@ -437,7 +440,7 @@ async fn get_user_info(
     match validate_token(token.unwrap(), jwt_key).await {
         Ok(claims) => {
             // Get user details from DB using the user ID in the token
-            match auth.get_user_by_username(claims.sub).await {
+            match auth.get_user_by_id(claims.sub.parse::<i32>().unwrap()).await {
                 Ok(Some(user)) => {
                     // Don't include password in response
                     (
@@ -445,7 +448,8 @@ async fn get_user_info(
                         Json(json!({
                             "id": user.id,
                             "username": user.username,
-                            "email": user.email
+                            "email": user.email,
+                            "profile_picture": user.profile_picture
                         })),
                     )
                         .into_response()
