@@ -57,6 +57,16 @@ struct LoginForm {
     password: String,
 }
 
+#[derive(Deserialize)]
+struct FriendRequestForm {
+    #[serde(rename = "senderId")]
+    sender_id: i32,
+    #[serde(rename = "receiverId")]
+    receiver_id: i32,
+    token: String,
+}
+
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -122,6 +132,7 @@ async fn main() {
         .route("/register", post(handle_registration))
         .route("/check-token", get(check_token))
         .route("/get-user-info", get(get_user_info))
+        .route("/send-friend-request", post(send_friend_request))
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
@@ -129,7 +140,7 @@ async fn main() {
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -213,6 +224,32 @@ async fn check_token(
     match validate_token(token.unwrap(), jwt_key).await {
         Ok(_) => (StatusCode::OK, Json(json!({ "valid": true }))).into_response(),
         Err(_) => (StatusCode::OK, Json(json!({ "valid": false }))).into_response(),
+    }
+}
+
+async fn send_friend_request(
+    State(state): State<Arc<ServerState>>,
+    Form(form): Form<FriendRequestForm>,
+) -> impl IntoResponse {
+
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+
+    // Validate the token.
+    if validate_token(&form.token, jwt_key).await.is_err() {
+        return (StatusCode::UNAUTHORIZED, Json(json!({"message": "Unauthorized" })));
+    }
+
+    let result = sqlx::query!(
+        r#"
+        INSERT INTO friend_requests (sender_id, receiver_id)
+        VALUES ($1, $2)
+        "#,
+        form.sender_id,
+        form.receiver_id
+    ).execute(&state.db).await;
+    match result {
+        Ok(_) => (StatusCode::OK, Json(json!({"message": "Friend Request sent successfully" }))),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"message": "Failed to send friend request" }))),
     }
 }
 
