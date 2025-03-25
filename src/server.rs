@@ -64,6 +64,13 @@ struct FriendRequestForm {
     token: String,
 }
 
+#[derive(Deserialize)]
+struct AcceptFriendRequestForm {
+    #[serde(rename = "userId")]
+    user_id: i32,
+    token: String,
+}
+
 
 #[tokio::main]
 async fn main() {
@@ -132,6 +139,7 @@ async fn main() {
         .route("/get-user-info", get(get_user_info))
         .route("/send-friend-request", post(send_friend_request))
         .route("/get-friend-requests", get(get_friend_requests))
+        .route("/accept-friend-request", post(accept_friend_request))
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
@@ -139,7 +147,7 @@ async fn main() {
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -346,6 +354,82 @@ async fn send_friend_request(
         Ok(_) => (StatusCode::OK, Json(json!({"message": "Friend Request sent successfully" }))),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"message": "Failed to send friend request" }))),
     }
+}
+
+async fn accept_friend_request(
+    State(state): State<Arc<ServerState>>,
+    Form(form): Form<AcceptFriendRequestForm>,
+) -> impl IntoResponse {
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    // Validate the token.
+    let claims = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims,
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Unauthorized"})),
+            );
+        }
+    };
+
+    let existing_request = sqlx::query!(
+        r#"
+        SELECT * 
+        FROM friend_requests 
+        WHERE sender_id = $1 AND receiver_id = $2
+        "#,
+        form.user_id,
+        claims.sub.parse::<i32>().unwrap()
+    ).fetch_one(&state.db).await;
+
+    let existing_request = match existing_request {
+        Ok(existing_request) => existing_request,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Internal server error, please try again"})),
+            );
+        }
+    };
+    println!("flag2");
+    let added_friend = sqlx::query!(
+        r#"
+        INSERT INTO friendships (user_id, friend_id)
+        VALUES ($1, $2);
+        "#,
+        form.user_id,
+        claims.sub.parse::<i32>().unwrap()
+    ).execute(&state.db).await;
+
+    let reverse_friend = sqlx::query!(
+        r#"
+        INSERT INTO friendships (user_id, friend_id)
+        VALUES ($1, $2);
+        "#,
+        claims.sub.parse::<i32>().unwrap(),
+        form.user_id,
+    ).execute(&state.db).await;
+
+    let delete_request = sqlx::query!(
+        r#"
+        DELETE
+        FROM friend_requests 
+        WHERE sender_id = $1 AND receiver_id = $2
+        "#,
+        form.user_id,
+        claims.sub.parse::<i32>().unwrap()
+    ).execute(&state.db).await;
+
+    match (added_friend, reverse_friend, delete_request) {
+        (Ok(_), Ok(_), Ok(_)) => {
+            (StatusCode::OK, Json(json!({"message": "Friend request accepted"})))
+        },
+        _ => {
+            (StatusCode::INTERNAL_SERVER_ERROR, 
+             Json(json!({"message": "Failed to accept friend request"})))
+        }
+    }
+
 }
 
 async fn handle_registration(
