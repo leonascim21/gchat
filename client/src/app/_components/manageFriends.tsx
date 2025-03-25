@@ -159,6 +159,25 @@ export default function ManageFriends() {
       });
   };
 
+  const handleDeny = async (sender_id: number) => {
+    const payload = qs.stringify({
+      userId: sender_id,
+      token: localStorage.getItem("token"),
+    });
+    axios
+      .post("https://api.gchat.cloud/friend/deny-request", payload)
+      .then((response) => {
+        if (response.status === 200) {
+          setIncomingFriends(
+            incomingFriends.filter((friend) => friend.sender_id !== sender_id)
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("An unexpected error occurred:", error);
+      });
+  };
+
   return (
     <Dialog>
       <SidebarHeader>
@@ -297,7 +316,13 @@ export default function ManageFriends() {
                                         </Tooltip>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                            <button
+                                              onClick={() =>
+                                                handleDeny(friend.sender_id)
+                                              }
+                                            >
+                                              <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                            </button>
                                           </TooltipTrigger>
                                           <TooltipContent>
                                             <p>Deny Request</p>

@@ -27,6 +27,13 @@ struct CancelFriendRequestForm {
     token: String,
 }
 
+#[derive(Deserialize)]
+struct DenyFriendRequestForm {
+    #[serde(rename = "userId")]
+    user_id: i32,
+    token: String,
+}
+
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/get", get(get_friendships))
@@ -34,6 +41,7 @@ pub fn router() -> Router<Arc<ServerState>> {
         .route("/get-requests", get(get_friend_requests))
         .route("/accept-request", post(accept_friend_request))
         .route("/cancel-request", post(cancel_friend_request))
+        .route("/deny-request", post(deny_friend_request))
 }
 
 async fn get_friendships(
@@ -315,6 +323,44 @@ async fn cancel_friend_request(
         _ => {
             (StatusCode::INTERNAL_SERVER_ERROR, 
              Json(json!({"message": "Failed to cancel friend request"})))
+        }
+    }
+
+}
+
+async fn deny_friend_request(
+    State(state): State<Arc<ServerState>>,
+    Form(form): Form<DenyFriendRequestForm>,
+) -> impl IntoResponse {
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    // Validate the token.
+    let claims = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims,
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Unauthorized"})),
+            );
+        }
+    };
+
+    let deny_request = sqlx::query!(
+        r#"
+        DELETE
+        FROM friend_requests 
+        WHERE sender_id = $1 AND receiver_id = $2
+        "#,
+        form.user_id,
+        claims.sub.parse::<i32>().unwrap()
+    ).execute(&state.db).await;
+
+    match deny_request {
+        Ok(_) => {
+            (StatusCode::OK, Json(json!({"message": "Friend request denied"})))
+        },
+        Err(_) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, 
+             Json(json!({"message": "Failed to deny friend request"})))
         }
     }
 
