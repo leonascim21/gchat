@@ -178,6 +178,23 @@ export default function ManageFriends() {
       });
   };
 
+  const handleRemove = async (friendId: number) => {
+    const payload = qs.stringify({
+      userId: friendId,
+      token: localStorage.getItem("token"),
+    });
+    axios
+      .post("https://api.gchat.cloud/friend/delete", payload)
+      .then((response) => {
+        if (response.status === 200) {
+          setFriends(friends.filter((friend) => friend.friend_id !== friendId));
+        }
+      })
+      .catch((error) => {
+        console.error("An unexpected error occurred:", error);
+      });
+  };
+
   return (
     <Dialog>
       <SidebarHeader>
@@ -232,7 +249,13 @@ export default function ManageFriends() {
                                   </Tooltip>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                      <button
+                                        onClick={() =>
+                                          handleRemove(friend.friend_id)
+                                        }
+                                      >
+                                        <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                      </button>
                                     </TooltipTrigger>
                                     <TooltipContent>
                                       <p>Remove Friend</p>

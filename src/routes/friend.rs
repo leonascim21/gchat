@@ -34,9 +34,17 @@ struct DenyFriendRequestForm {
     token: String,
 }
 
+#[derive(Deserialize)]
+struct RemoveFriendForm {
+    #[serde(rename = "userId")]
+    user_id: i32,
+    token: String,
+}
+
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/get", get(get_friendships))
+        .route("/delete", post(remove_friendship))
         .route("/send-request", post(send_friend_request))
         .route("/get-requests", get(get_friend_requests))
         .route("/accept-request", post(accept_friend_request))
@@ -361,6 +369,55 @@ async fn deny_friend_request(
         Err(_) => {
             (StatusCode::INTERNAL_SERVER_ERROR, 
              Json(json!({"message": "Failed to deny friend request"})))
+        }
+    }
+
+}
+
+
+async fn remove_friendship(    
+    State(state): State<Arc<ServerState>>,
+    Form(form): Form<RemoveFriendForm>
+) -> impl IntoResponse  {
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    // Validate the token.
+    let claims = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims,
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Unauthorized"})),
+            );
+        }
+    };
+
+    let remove_friendship = sqlx::query!(
+        r#"
+        DELETE
+        FROM friendships 
+        WHERE user_id = $1 AND friend_id = $2
+        "#, 
+        claims.sub.parse::<i32>().unwrap(),
+        form.user_id
+    ).execute(&state.db).await;
+
+    let remove_reverse_friendship = sqlx::query!(
+        r#"
+        DELETE 
+        FROM friendships
+        WHERE user_id = $1 AND friend_id = $2
+        "#, 
+        form.user_id,
+        claims.sub.parse::<i32>().unwrap(),
+    ).execute(&state.db).await;
+
+    match(remove_friendship, remove_reverse_friendship) {
+        (Ok(_), Ok(_)) => {
+            (StatusCode::OK, Json(json!({"message": "Friend removed"})))
+        },
+        _ => {
+            (StatusCode::INTERNAL_SERVER_ERROR,
+             Json(json!({"message": "Failed to remove friend"})))
         }
     }
 
