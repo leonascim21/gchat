@@ -211,14 +211,28 @@ async fn send_friend_request(
     };
     let result = sqlx::query!(
         r#"
-        INSERT INTO friend_requests (sender_id, receiver_id)
-        VALUES ($1, $2)
+        WITH inserted AS (
+            INSERT INTO friend_requests (sender_id, receiver_id)
+            VALUES ($1, $2)
+            RETURNING sender_id, receiver_id
+        )
+        SELECT i.sender_id, i.receiver_id, u.username
+        FROM inserted i
+        JOIN users u ON i.receiver_id = u.id
         "#,
         claims.sub.parse::<i32>().unwrap(),
         receiver.id,
-    ).execute(&state.db).await;
+    ).fetch_one(&state.db).await;
     match result {
-        Ok(_) => (StatusCode::OK, Json(json!({"message": "Friend Request sent successfully" }))),
+        Ok(record) => {
+            let friend_request = json!({
+                "receiver_id:": record.receiver_id,
+                "sender_id": record.sender_id,
+                "username": record.username,
+            });
+            
+            (StatusCode::OK, Json(json!({"message": "Friend request sent successfully", "friend_request": friend_request})))
+    },
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"message": "Failed to send friend request" }))),
     }
 }

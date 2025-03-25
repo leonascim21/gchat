@@ -50,6 +50,11 @@ interface FriendRequestResponse {
   outgoing: FriendRequest[];
 }
 
+interface AddFriendResponse {
+  message: string;
+  friend_request: FriendRequest;
+}
+
 export default function ManageFriends() {
   const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>([]);
   const [outgoingFriends, setOutgoingFriends] = useState<FriendRequest[]>([]);
@@ -105,9 +110,13 @@ export default function ManageFriends() {
     });
 
     axios
-      .post("https://api.gchat.cloud/friend/send-request", payload)
+      .post<AddFriendResponse>(
+        "https://api.gchat.cloud/friend/send-request",
+        payload
+      )
       .then((response) => {
         setFormMessage(response.data.message);
+        setOutgoingFriends([...outgoingFriends, response.data.friend_request]);
       })
       .catch((error) => {
         setFormMessage(error.response.data.message);
