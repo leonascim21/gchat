@@ -20,12 +20,20 @@ struct AcceptFriendRequestForm {
     token: String,
 }
 
+#[derive(Deserialize)]
+struct CancelFriendRequestForm {
+    #[serde(rename = "userId")]
+    user_id: i32,
+    token: String,
+}
+
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/get", get(get_friendships))
         .route("/send-request", post(send_friend_request))
         .route("/get-requests", get(get_friend_requests))
         .route("/accept-request", post(accept_friend_request))
+        .route("/cancel-request", post(cancel_friend_request))
 }
 
 async fn get_friendships(
@@ -269,6 +277,44 @@ async fn accept_friend_request(
         _ => {
             (StatusCode::INTERNAL_SERVER_ERROR, 
              Json(json!({"message": "Failed to accept friend request"})))
+        }
+    }
+
+}
+
+async fn cancel_friend_request(
+    State(state): State<Arc<ServerState>>,
+    Form(form): Form<CancelFriendRequestForm>,
+) -> impl IntoResponse {
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    // Validate the token.
+    let claims = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims,
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Unauthorized"})),
+            );
+        }
+    };
+
+    let delete_request = sqlx::query!(
+        r#"
+        DELETE
+        FROM friend_requests 
+        WHERE sender_id = $1 AND receiver_id = $2
+        "#,
+        claims.sub.parse::<i32>().unwrap(),
+        form.user_id
+    ).execute(&state.db).await;
+
+    match (delete_request) {
+        (Ok(_)) => {
+            (StatusCode::OK, Json(json!({"message": "Friend request canceled"})))
+        },
+        _ => {
+            (StatusCode::INTERNAL_SERVER_ERROR, 
+             Json(json!({"message": "Failed to cancel friend request"})))
         }
     }
 
