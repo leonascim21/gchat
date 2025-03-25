@@ -133,6 +133,7 @@ async fn main() {
         .route("/check-token", get(check_token))
         .route("/get-user-info", get(get_user_info))
         .route("/send-friend-request", post(send_friend_request))
+        .route("/get-friend-requests", get(get_friend_requests))
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
@@ -225,6 +226,84 @@ async fn check_token(
         Ok(_) => (StatusCode::OK, Json(json!({ "valid": true }))).into_response(),
         Err(_) => (StatusCode::OK, Json(json!({ "valid": false }))).into_response(),
     }
+}
+
+
+async fn get_friend_requests(
+    State(state): State<Arc<ServerState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let token = match params.get("token") {
+        None => {
+            return (StatusCode::UNAUTHORIZED, Json(json!({ "error": "Missing token" }))).into_response()
+        }
+        Some(token) => token,
+    };
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    let user_id = match validate_token(token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
+        Err(_) => {
+            return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Invalid token" }))).into_response()
+        }
+    };
+
+    let outgoing_result = sqlx::query!(
+        r#"
+        SELECT fr.sender_id, fr.receiver_id, u.username
+        FROM friend_requests fr
+        JOIN users u ON fr.receiver_id = u.id
+        WHERE fr.receiver_id = $1
+        "#,
+        user_id
+    )
+    .fetch_all(&state.db)
+    .await;
+
+    let outgoing_requests = match outgoing_result {
+        Ok(requests) => requests
+            .iter()
+            .map(|r| {
+                json!({
+                    "sender_id": r.sender_id,
+                    "receiver_id": r.receiver_id,
+                    "username": r.username,
+                })
+            })
+            .collect::<Vec<_>>(),
+        Err(_) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch friend requests" }))).into_response()
+        }
+    };
+
+    let incoming_result = sqlx::query!(
+        r#"
+        SELECT fr.sender_id, fr.receiver_id, u.username
+        FROM friend_requests fr
+        JOIN users u ON fr.sender_id = u.id
+        WHERE fr.sender_id = $1
+        "#,
+        user_id
+    )
+    .fetch_all(&state.db)
+    .await;
+
+    let incoming_requests = match incoming_result {
+        Ok(requests) => requests
+            .iter()
+            .map(|r| {
+                json!({
+                    "sender_id": r.sender_id,
+                    "receiver_id": r.receiver_id,
+                    "username": r.username,
+                })
+            })
+            .collect::<Vec<_>>(),
+        Err(_) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch friend requests" }))).into_response()
+        }
+    };
+
+    (StatusCode::OK,Json(json!({"outgoing": outgoing_requests,"incoming": incoming_requests }))).into_response()
 }
 
 async fn send_friend_request(
