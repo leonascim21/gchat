@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,10 +34,66 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { users } from "../fakeData/fakeData";
+import { FormEvent, useEffect, useState } from "react";
+import axios from "axios";
 
-const friends = users;
+interface Friend {
+  friend_id: number;
+  username: string;
+}
 
 export default function CreateChatForm() {
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    axios
+      .get<Friend[]>(`https://api.gchat.cloud/friend/get?token=${token}`)
+      .then((response) => {
+        setFriends(response.data);
+      })
+      .catch((error) => {
+        console.error("An unexpected error occurred:", error);
+      });
+  }, []);
+
+  const handleCheckboxChange = (friendId: number, checked: boolean) => {
+    setSelectedMemberIds((prev) => {
+      if (checked) {
+        return [...prev, friendId];
+      } else {
+        return prev.filter((id) => id !== friendId);
+      }
+    });
+  };
+
+  function createGroupChat(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+
+    const payload = {
+      token: token,
+      groupName: e.currentTarget.groupName.value,
+      memberIds: selectedMemberIds,
+    };
+    console.log(payload);
+    axios
+      .post("http://localhost:3002/group/create", payload)
+      .then((response) => {
+        console.log(response);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
   return (
     <Dialog>
       <SidebarHeader>
@@ -75,23 +132,42 @@ export default function CreateChatForm() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ScrollArea className="h-[150px] pr-4">
-                        <div className="space-y-2">
-                          {friends.map((friend) => (
-                            <div
-                              key={friend.userID}
-                              className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b"
-                            >
-                              <Checkbox />
-                              <Label>{friend.username}</Label>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
+                      <form
+                        onSubmit={(e) => createGroupChat(e)}
+                        className="flex flex-col gap-4"
+                      >
+                        <Input
+                          type="text"
+                          name="groupName"
+                          placeholder="Chat name"
+                          className="w-full"
+                        />
+                        <ScrollArea className="h-[150px] pr-4">
+                          <div className="space-y-2">
+                            {friends.map((friend) => (
+                              <div
+                                key={friend.friend_id}
+                                className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b"
+                              >
+                                <Checkbox
+                                  onCheckedChange={(e) =>
+                                    handleCheckboxChange(
+                                      friend.friend_id,
+                                      e as boolean
+                                    )
+                                  }
+                                />
+
+                                <Label>{friend.username}</Label>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                        <Button className="w-[30%]" type="submit">
+                          Create Chat
+                        </Button>
+                      </form>
                     </CardContent>
-                    <CardFooter>
-                      <Button>Create Chat</Button>
-                    </CardFooter>
                   </Card>
                 </TabsContent>
                 <TabsContent value="temporaryChat">
