@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,11 +30,114 @@ import {
 } from "@/components/ui/sidebar";
 import { Check, MessageSquareShare, Plus, Users, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { users } from "../fakeData/fakeData";
+import { FormEvent, useEffect, useState } from "react";
+import axios from "axios";
+import qs from "qs";
 
-const friends = users;
+interface Friend {
+  friend_id: number;
+  username: string;
+}
+
+interface FriendRequest {
+  receiver_id: number;
+  sender_id: number;
+  username: string;
+}
+
+interface FriendRequestResponse {
+  incoming: FriendRequest[];
+  outgoing: FriendRequest[];
+}
 
 export default function ManageFriends() {
+  const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>([]);
+  const [outgoingFriends, setOutgoingFriends] = useState<FriendRequest[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [formMessage, setFormMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    axios
+      .get<FriendRequestResponse>(
+        `http://localhost:3001/friend/get-requests?token=${token}`
+      )
+      .then((response) => {
+        setIncomingFriends(response.data.incoming);
+        setOutgoingFriends(response.data.outgoing);
+      })
+      .catch((error) => {
+        console.error("An unexpected error occurred:", error);
+      });
+
+    axios
+      .get<Friend[]>(`http://localhost:3001/friend/get?token=${token}`)
+      .then((response) => {
+        setFriends(response.data);
+      })
+      .catch((error) => {
+        console.error("An unexpected error occurred:", error);
+      });
+  }, []);
+
+  function addFriend(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsLoading(true);
+    setFormMessage("");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    const username = e.currentTarget.username.value;
+    if (username === "") {
+      setIsLoading(false);
+      return;
+    }
+
+    const payload = qs.stringify({
+      receiverUsername: username,
+      token: token,
+    });
+
+    axios
+      .post("http://localhost:3001/send-request", payload)
+      .then((response) => {
+        setFormMessage(response.data.message);
+      })
+      .catch((error) => {
+        setFormMessage(error.response.data.message);
+      })
+      .finally(() => setIsLoading(false));
+  }
+
+  const handleAccept = async (sender_id: number, username: string) => {
+    const payload = qs.stringify({
+      userId: sender_id,
+      token: localStorage.getItem("token"),
+    });
+    axios
+      .post("http://localhost:3001/friend/accept-request", payload)
+      .then((response) => {
+        if (response.status === 200) {
+          setIncomingFriends(
+            incomingFriends.filter((friend) => friend.sender_id !== sender_id)
+          );
+          setFriends([
+            ...friends,
+            { friend_id: sender_id, username: username },
+          ]);
+        }
+      })
+      .catch((error) => {
+        console.error("An unexpected error occurred:", error);
+      });
+  };
+
   return (
     <Dialog>
       <SidebarHeader>
@@ -72,7 +176,7 @@ export default function ManageFriends() {
                         <div className="space-y-2">
                           {friends.map((friend) => (
                             <div
-                              key={friend.userID}
+                              key={friend.friend_id}
                               className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b justify-between"
                             >
                               <Label>{friend.username}</Label>
@@ -113,17 +217,23 @@ export default function ManageFriends() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-5">
-                      <div>
+                      <div className="flex flex-col gap-1">
                         <Label className="pl-1">Add friend by username</Label>
-                        <div className="flex flex-row gap-3">
+                        <form
+                          className="flex flex-row gap-3"
+                          onSubmit={(e) => addFriend(e)}
+                        >
                           <Input
+                            type="text"
+                            name="username"
                             placeholder="Friend's username"
                             className="w-full"
                           />
-                          <Button>
-                            <Plus />
+                          <Button type="submit" disabled={isLoading}>
+                            {isLoading ? "..." : <Plus />}
                           </Button>
-                        </div>
+                        </form>
+                        <p className="text-sm">{formMessage}</p>
                       </div>
                       <hr></hr>
                       <Tabs defaultValue="incoming" className="pr-2">
@@ -139,9 +249,9 @@ export default function ManageFriends() {
                           <div>
                             <ScrollArea className="h-[215px] pr-4 pt-5">
                               <div className="space-y-2">
-                                {friends.map((friend) => (
+                                {incomingFriends.map((friend) => (
                                   <div
-                                    key={friend.userID}
+                                    key={friend.sender_id}
                                     className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b justify-between"
                                   >
                                     <Label>{friend.username}</Label>
@@ -149,7 +259,16 @@ export default function ManageFriends() {
                                       <TooltipProvider delayDuration={0}>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <Check className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                            <button
+                                              onClick={() =>
+                                                handleAccept(
+                                                  friend.sender_id,
+                                                  friend.username
+                                                )
+                                              }
+                                            >
+                                              <Check className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                                            </button>
                                           </TooltipTrigger>
                                           <TooltipContent>
                                             <p>Accept Request</p>
@@ -175,9 +294,9 @@ export default function ManageFriends() {
                           <div>
                             <ScrollArea className="h-[215px] pr-4 pt-5">
                               <div className="space-y-2">
-                                {friends.map((friend) => (
+                                {outgoingFriends.map((friend) => (
                                   <div
-                                    key={friend.userID}
+                                    key={friend.receiver_id}
                                     className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b justify-between"
                                   >
                                     <Label>{friend.username}</Label>
