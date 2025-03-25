@@ -250,7 +250,7 @@ async fn get_friend_requests(
         SELECT fr.sender_id, fr.receiver_id, u.username
         FROM friend_requests fr
         JOIN users u ON fr.receiver_id = u.id
-        WHERE fr.receiver_id = $1
+        WHERE fr.sender_id = $1
         "#,
         user_id
     )
@@ -278,7 +278,7 @@ async fn get_friend_requests(
         SELECT fr.sender_id, fr.receiver_id, u.username
         FROM friend_requests fr
         JOIN users u ON fr.sender_id = u.id
-        WHERE fr.sender_id = $1
+        WHERE fr.receiver_id = $1
         "#,
         user_id
     )
@@ -300,8 +300,7 @@ async fn get_friend_requests(
             return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch friend requests" }))).into_response()
         }
     };
-    println!("{:#?}", outgoing_requests);
-
+    
     (StatusCode::OK,Json(json!({"outgoing": outgoing_requests,"incoming": incoming_requests }))).into_response()
 }
 
