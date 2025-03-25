@@ -63,7 +63,7 @@ export default function ManageFriends() {
 
     axios
       .get<FriendRequestResponse>(
-        `http://api.gchat.cloud/friend/get-requests?token=${token}`
+        `https://api.gchat.cloud/friend/get-requests?token=${token}`
       )
       .then((response) => {
         setIncomingFriends(response.data.incoming);
@@ -74,7 +74,7 @@ export default function ManageFriends() {
       });
 
     axios
-      .get<Friend[]>(`http://api.gchat.cloud/friend/get?token=${token}`)
+      .get<Friend[]>(`https://api.gchat.cloud/friend/get?token=${token}`)
       .then((response) => {
         setFriends(response.data);
       })
@@ -105,7 +105,7 @@ export default function ManageFriends() {
     });
 
     axios
-      .post("http://api.gchat.cloud/friend/send-request", payload)
+      .post("https://api.gchat.cloud/friend/send-request", payload)
       .then((response) => {
         setFormMessage(response.data.message);
       })
@@ -121,7 +121,7 @@ export default function ManageFriends() {
       token: localStorage.getItem("token"),
     });
     axios
-      .post("http://api.gchat.cloud/friend/accept-request", payload)
+      .post("https://api.gchat.cloud/friend/accept-request", payload)
       .then((response) => {
         if (response.status === 200) {
           setIncomingFriends(
@@ -144,7 +144,7 @@ export default function ManageFriends() {
       token: localStorage.getItem("token"),
     });
     axios
-      .post("http://api.gchat.cloud/friend/cancel-request", payload)
+      .post("https://api.gchat.cloud/friend/cancel-request", payload)
       .then((response) => {
         if (response.status === 200) {
           setOutgoingFriends(
