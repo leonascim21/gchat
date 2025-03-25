@@ -59,10 +59,8 @@ struct LoginForm {
 
 #[derive(Deserialize)]
 struct FriendRequestForm {
-    #[serde(rename = "senderId")]
-    sender_id: i32,
-    #[serde(rename = "receiverId")]
-    receiver_id: i32,
+    #[serde(rename = "receiverUsername")]
+    receiver_username: String,
     token: String,
 }
 
@@ -302,17 +300,18 @@ async fn get_friend_requests(
             return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch friend requests" }))).into_response()
         }
     };
+    println!("{:#?}", outgoing_requests);
 
     (StatusCode::OK,Json(json!({"outgoing": outgoing_requests,"incoming": incoming_requests }))).into_response()
 }
 
 async fn send_friend_request(
+    Extension(auth): Extension<Arc<Auth>>,
     State(state): State<Arc<ServerState>>,
     Form(form): Form<FriendRequestForm>,
 ) -> impl IntoResponse {
 
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
-
     // Validate the token.
     let claims = match validate_token(&form.token, jwt_key).await {
         Ok(claims) => claims,
@@ -323,20 +322,26 @@ async fn send_friend_request(
             );
         }
     };
-    if claims.sub != form.sender_id.to_string() {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"message": "Unauthorized"})),
-        );
-    }
-
+    let receiver =  match auth.get_user_by_username(form.receiver_username).await {
+        Ok(user) => if user.is_some() { 
+            user.unwrap() 
+        } else { 
+            return (StatusCode::BAD_REQUEST, Json(json!({"message": "User not found" }))); 
+        },
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Internal server error, please try again"})),
+            );
+        }
+    };
     let result = sqlx::query!(
         r#"
         INSERT INTO friend_requests (sender_id, receiver_id)
         VALUES ($1, $2)
         "#,
-        form.sender_id,
-        form.receiver_id
+        claims.sub.parse::<i32>().unwrap(),
+        receiver.id,
     ).execute(&state.db).await;
     match result {
         Ok(_) => (StatusCode::OK, Json(json!({"message": "Friend Request sent successfully" }))),
