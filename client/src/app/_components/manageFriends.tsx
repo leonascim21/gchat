@@ -105,7 +105,7 @@ export default function ManageFriends() {
     });
 
     axios
-      .post("http://api.gchat.cloud/send-request", payload)
+      .post("http://api.gchat.cloud/friend/send-request", payload)
       .then((response) => {
         setFormMessage(response.data.message);
       })
