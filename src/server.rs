@@ -140,6 +140,7 @@ async fn main() {
         .route("/send-friend-request", post(send_friend_request))
         .route("/get-friend-requests", get(get_friend_requests))
         .route("/accept-friend-request", post(accept_friend_request))
+        .route("/get-friendships", get(get_friendships))
         //.nofollow.route("/api/validate-token", get(validate_token_handler))
         //.route("/api/me", get(get_user_info))
         .route("/api/logout", post(handle_logout))
@@ -234,6 +235,54 @@ async fn check_token(
     }
 }
 
+async fn get_friendships(
+    State(state): State<Arc<ServerState>>,
+    Query(params): Query<HashMap<String, String>>
+) -> impl IntoResponse {
+    let token = match params.get("token") {
+        None => {
+            return (StatusCode::UNAUTHORIZED, Json(json!({ "error": "Missing token" }))).into_response()
+        }
+        Some(token) => token,
+    };
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    let user_id = match validate_token(token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
+        Err(_) => {
+            return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Invalid token" }))).into_response()
+        }
+    };
+
+    let friendship = sqlx::query!(
+        r#"
+        SELECT f.friend_id, u.username 
+        FROM friendships f 
+        JOIN users u ON f.friend_id = u.id 
+        WHERE f.user_id = $1
+        "#,
+        user_id
+    )
+  .fetch_all(&state.db)
+  .await;
+    match friendship {
+        Ok(friendships) => {
+            let friendship_data = friendships.iter().map(|f| {
+                json!({
+                    "friend_id": f.friend_id,
+                    "username": f.username,
+                })
+            }).collect::<Vec<_>>();
+            (StatusCode::OK, Json(friendship_data)).into_response()
+        }
+        Err(err) => {
+            eprintln!("Database error: {}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Failed to fetch friendships" })),
+            ).into_response()
+        }
+    }
+}
 
 async fn get_friend_requests(
     State(state): State<Arc<ServerState>>,
@@ -391,7 +440,6 @@ async fn accept_friend_request(
             );
         }
     };
-    println!("flag2");
     let added_friend = sqlx::query!(
         r#"
         INSERT INTO friendships (user_id, friend_id)
