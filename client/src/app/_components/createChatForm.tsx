@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import { users } from "../fakeData/fakeData";
 import { FormEvent, useEffect, useState } from "react";
 import axios from "axios";
 

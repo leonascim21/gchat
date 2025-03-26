@@ -19,7 +19,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import CreateChatForm from "./_components/createChatForm";
-import { groupMessages, groups, messages, users } from "./fakeData/fakeData";
 import ManageFriends from "./_components/manageFriends";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -134,7 +133,7 @@ export default function Home() {
       });
 
     axios
-      .get<Group[]>(`http://localhost:3002/group/get?token=${token}`)
+      .get<Group[]>(`https://api.gchat.cloud/group/get?token=${token}`)
       .then((response) => {
         setGroups([
           { id: -1, name: "Test Chat", profile_picture: "" },
@@ -142,7 +141,7 @@ export default function Home() {
         ]);
       })
       .catch((error) => {
-        console.error("Error fetching user:", error);
+        console.error("Error fetching groups:", error);
       });
   }, [isAuth]);
 
