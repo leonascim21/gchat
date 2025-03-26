@@ -55,10 +55,14 @@ interface AddFriendResponse {
   friend_request: FriendRequest;
 }
 
-export default function ManageFriends() {
+interface Props {
+  initialFriends: Friend[];
+}
+
+export default function ManageFriends({ initialFriends }: Props) {
   const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>([]);
   const [outgoingFriends, setOutgoingFriends] = useState<FriendRequest[]>([]);
-  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friends, setFriends] = useState<Friend[]>(initialFriends);
   const [formMessage, setFormMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -73,15 +77,6 @@ export default function ManageFriends() {
       .then((response) => {
         setIncomingFriends(response.data.incoming);
         setOutgoingFriends(response.data.outgoing);
-      })
-      .catch((error) => {
-        console.error("An unexpected error occurred:", error);
-      });
-
-    axios
-      .get<Friend[]>(`https://api.gchat.cloud/friend/get?token=${token}`)
-      .then((response) => {
-        setFriends(response.data);
       })
       .catch((error) => {
         console.error("An unexpected error occurred:", error);

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { LogOut, Menu, MessageSquare, Send } from "lucide-react";
+import { LogOut, Menu, MessageSquare, Send, Users } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import Ping from "./_components/ping";
 import ThemeToggle from "./_components/theme-toggle";
@@ -49,6 +49,12 @@ interface User {
   email: string;
 }
 
+interface Friend {
+  friend_id: number;
+  username: string;
+  profile_picture: string;
+}
+
 interface Group {
   id: number;
   name: string;
@@ -67,6 +73,7 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -143,6 +150,15 @@ export default function Home() {
       })
       .catch((error) => {
         console.error("Error fetching groups:", error);
+      });
+
+    axios
+      .get<Friend[]>(`https://api.gchat.cloud/friend/get?token=${token}`)
+      .then((response) => {
+        setFriends(response.data);
+      })
+      .catch((error) => {
+        console.error("An unexpected error occurred:", error);
       });
   }, [isAuth]);
 
@@ -238,7 +254,7 @@ export default function Home() {
           <h1 className="text-md font-semibold text-center pt-4">GChat</h1>
           <div className="flex flex-row justify-between">
             <CreateChatForm addGroupChat={addGroupChat} />
-            <ManageFriends />
+            <ManageFriends initialFriends={friends} />
           </div>
           <div className="px-3 py-1 mb-2">
             <Input
@@ -255,12 +271,20 @@ export default function Home() {
                 )
                 .map((chat) => (
                   <div key={chat.id}>
+                    <hr className="pb-1 mx-2" />
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         onClick={() => setSelectedChat(chat.id)}
                         isActive={selectedChat === chat.id}
                       >
-                        <MessageSquare className="mr-2 h-4 w-4" />
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={chat.profile_picture} />
+                          <AvatarFallback>
+                            <div className="bg-purple-200 dark:bg-purple-900 rounded-full h-6 w-6 flex items-center justify-center border border-gray-400">
+                              <Users className="h-3 w-3 " />
+                            </div>
+                          </AvatarFallback>
+                        </Avatar>
                         {chat.name}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -325,6 +349,7 @@ export default function Home() {
                       groups.find((chat) => chat.id === selectedChat)
                         ?.profile_picture ?? ""
                     }
+                    friends={friends}
                   ></GroupManagementModal>
                 )
               ) : (

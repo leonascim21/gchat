@@ -7,17 +7,18 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 
-interface User {
-  userID: number;
+interface Friend {
+  friend_id: number;
   username: string;
   profile_picture?: string;
 }
 
 interface Props {
-  friends: User[];
+  friends: Friend[];
+  groupId: number;
 }
 
-export function GroupSettingsForm({ friends }: Props) {
+export function GroupSettingsForm({ friends, groupId }: Props) {
   const [usersOpen, setUsersOpen] = useState(false);
   const [pictureOpen, setPictureOpen] = useState(false);
 
@@ -67,11 +68,12 @@ export function GroupSettingsForm({ friends }: Props) {
             }
             className="flex flex-col gap-4"
           >
+            <h1>{groupId}</h1>
             <ScrollArea className="h-[150px] pr-4">
               <div className="space-y-2">
                 {friends.map((friend) => (
                   <div
-                    key={friend.userID}
+                    key={friend.friend_id}
                     className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b"
                   >
                     <Checkbox
