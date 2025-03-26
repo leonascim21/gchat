@@ -15,11 +15,21 @@ struct CreateGroupForm {
     member_ids: Vec<i32>,
 }
 
+#[derive(Deserialize)]
+struct AddUsersForm {
+    token: String,
+    #[serde(rename = "groupId")]
+    group_id: i32,
+    #[serde(rename = "newMemberIds")]
+    new_member_ids: Vec<i32>,
+}
+
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/create", post(create_group_chat))
         .route("/get", get(get_groups))
         .route("/get-users", get(get_users_in_group))
+        .route("/add-users", post(add_users_to_group))
 }
 
 
@@ -196,4 +206,80 @@ async fn get_users_in_group(
             (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch users" }))).into_response()
         }
     }
+}
+
+
+async fn add_users_to_group(
+    Extension(auth): Extension<Arc<Auth>>,
+    State(state): State<Arc<ServerState>>,
+    extract::Json(form): extract::Json<AddUsersForm>
+) -> impl IntoResponse {
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    let user_id = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
+        Err(_) => {
+            return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Invalid token" }))).into_response()
+        }
+    };
+
+    let users = sqlx::query!(
+        r#"
+        SELECT *
+        FROM users u
+        JOIN group_members gm ON u.id = gm.user_id
+        WHERE gm.group_id = $1
+        "#,
+        form.group_id
+    ).fetch_all(&state.db).await;
+
+    match users {
+        Ok(users) => {
+            let users_data = users.iter().map(|u| {
+                json!({
+                    "username": u.username,
+                    "profile_picture": u.profile_picture,
+                    "id": u.id,
+                })
+            }).collect::<Vec<_>>();
+
+            let mut user_in_group = false;
+            for user in users_data.iter() {
+                if user["id"] == user_id {
+                    user_in_group = true;
+                    break;
+                }
+            }
+            if !user_in_group {
+                return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "User not in group" }))).into_response()
+            }
+        }
+        Err(_) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch users" }))).into_response()
+        }
+    };
+
+    for member_id in form.new_member_ids {
+        let result = sqlx::query!(
+            r#"
+            INSERT INTO group_members (group_id, user_id)
+            VALUES ($1, $2)
+            "#,
+            form.group_id,
+            member_id
+        )
+       .execute(&state.db)
+       .await;
+        match result {
+            Ok(_) => {}
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Internal Server Error"}))).into_response();
+            }
+        }
+    }
+
+    return (StatusCode::OK, Json(json!({"message": "Users Added"}))).into_response();
+
+  
 }
