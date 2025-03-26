@@ -171,6 +171,10 @@ export default function Home() {
     };
   }, [isAuth]);
 
+  const addGroupChat = (newGroup: Group) => {
+    setGroups((prev) => [...prev, newGroup]);
+  };
+
   const logOut = () => {
     localStorage.removeItem("token");
     setShowAuthModal(true);
@@ -232,7 +236,7 @@ export default function Home() {
         <Sidebar>
           <h1 className="text-md font-semibold text-center pt-4">GChat</h1>
           <div className="flex flex-row justify-between">
-            <CreateChatForm />
+            <CreateChatForm addGroupChat={addGroupChat} />
             <ManageFriends />
           </div>
           <div className="px-3 py-1 mb-2">

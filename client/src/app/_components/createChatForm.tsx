@@ -41,13 +41,31 @@ interface Friend {
   username: string;
 }
 
-export default function CreateChatForm() {
+interface Group {
+  id: number;
+  name: string;
+  profile_picture: string;
+}
+
+interface CreateGroupResponse {
+  group_id: number;
+  message: string;
+}
+
+interface Props {
+  addGroupChat: (chat: Group) => void;
+}
+
+export default function CreateChatForm({ addGroupChat }: Props) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
+
+    setIsLoading(true);
 
     axios
       .get<Friend[]>(`https://api.gchat.cloud/friend/get?token=${token}`)
@@ -56,6 +74,9 @@ export default function CreateChatForm() {
       })
       .catch((error) => {
         console.error("An unexpected error occurred:", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -84,9 +105,16 @@ export default function CreateChatForm() {
     };
     console.log(payload);
     axios
-      .post("http://localhost:3002/group/create", payload)
+      .post<CreateGroupResponse>(
+        "https://api.gchat.cloud/group/create",
+        payload
+      )
       .then((response) => {
-        console.log(response);
+        addGroupChat({
+          id: response.data.group_id,
+          name: payload.groupName,
+          profile_picture: "",
+        });
       })
       .catch((error) => {
         console.error(error);
@@ -162,8 +190,12 @@ export default function CreateChatForm() {
                             ))}
                           </div>
                         </ScrollArea>
-                        <Button className="w-[30%]" type="submit">
-                          Create Chat
+                        <Button
+                          className="w-[30%]"
+                          type="submit"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "..." : "Create Chat"}
                         </Button>
                       </form>
                     </CardContent>
