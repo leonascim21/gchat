@@ -33,11 +33,6 @@ import { getIdFromJWT, usernameToColor } from "./utils";
 import axios from "axios";
 import AuthModals from "./_components/authModals";
 
-const chats = groups;
-const message = messages;
-const groupMessage = groupMessages;
-const usera = users;
-
 interface Message {
   id: number;
   user_id: number;
@@ -54,6 +49,12 @@ interface User {
   email: string;
 }
 
+interface Group {
+  id: number;
+  name: string;
+  profile_picture: string;
+}
+
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
@@ -65,6 +66,7 @@ export default function Home() {
   const [connected, setConnected] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -118,6 +120,26 @@ export default function Home() {
       .get(`https://api.gchat.cloud/get-user-info?token=${token}`)
       .then((response) => {
         setUser(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching user:", error);
+      });
+    axios
+      .get(`https://api.gchat.cloud/get-all-messages?token=${token}`)
+      .then((response) => {
+        setMessages(response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching messages:", error);
+      });
+
+    axios
+      .get<Group[]>(`http://localhost:3002/group/get?token=${token}`)
+      .then((response) => {
+        setGroups([
+          { id: -1, name: "Test Chat", profile_picture: "" },
+          ...response.data,
+        ]);
       })
       .catch((error) => {
         console.error("Error fetching user:", error);
@@ -223,21 +245,19 @@ export default function Home() {
           </div>
           <SidebarContent>
             <SidebarMenu>
-              {chats
+              {groups
                 .filter((chat) =>
-                  chat.group_name
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase())
+                  chat.name.toLowerCase().includes(searchQuery.toLowerCase())
                 )
                 .map((chat) => (
-                  <div key={chat.groupID}>
+                  <div key={chat.id}>
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        onClick={() => setSelectedChat(chat.groupID)}
-                        isActive={selectedChat === chat.groupID}
+                        onClick={() => setSelectedChat(chat.id)}
+                        isActive={selectedChat === chat.id}
                       >
                         <MessageSquare className="mr-2 h-4 w-4" />
-                        {chat.group_name}
+                        {chat.name}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </div>
@@ -288,8 +308,7 @@ export default function Home() {
             </div>
             <h1 className="font-semibold ">
               {selectedChat
-                ? chats.find((chat) => chat.groupID === selectedChat)
-                    ?.group_name
+                ? groups.find((chat) => chat.id === selectedChat)?.name
                 : "Select a chat"}
             </h1>
             <div className="flex flex-row items-center gap-3">
@@ -317,74 +336,7 @@ export default function Home() {
                     </Card>
                   </div>
                 ) : selectedChat !== -1 ? (
-                  chats.find((chat) => chat.groupID === selectedChat)
-                    ?.groupID &&
-                  message
-                    .filter((msg) =>
-                      groupMessage.find(
-                        (gm) =>
-                          gm.messageID === msg.messageID &&
-                          gm.groupID === selectedChat
-                      )
-                    )
-                    .map((message) =>
-                      message.senderID == 1 ? (
-                        <div
-                          key={message.messageID}
-                          className="flex justify-end"
-                        >
-                          <div className="flex flex-col">
-                            <Card className="bg-primary border-0 shadow-lg py-2 px-4 text-white w-fit rounded-full ml-12">
-                              {message.content}
-                            </Card>
-                            <p className="text-sm opacity-40 text-right pr-3">
-                              {new Date(message.sent_at).toLocaleDateString(
-                                [],
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                }
-                              ) +
-                                " • " +
-                                new Date(message.sent_at).toLocaleTimeString(
-                                  [],
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  }
-                                )}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          key={message.messageID}
-                          className="flex flex-col justify-start"
-                        >
-                          <p className="text-sm pl-3">
-                            {
-                              usera.find(
-                                (person) => person.userID === message.senderID
-                              )?.username
-                            }
-                          </p>
-                          <Card className="bg-slate-300 border-0 shadow-lg py-2 px-4 text-black w-fit rounded-full mr-12">
-                            {message.content}
-                          </Card>
-                          <p className="text-sm opacity-40 pl-3">
-                            {new Date(message.sent_at).toLocaleDateString([], {
-                              month: "short",
-                              day: "numeric",
-                            }) +
-                              " • " +
-                              new Date(message.sent_at).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                          </p>
-                        </div>
-                      )
-                    )
+                  <div></div>
                 ) : (
                   <div className="flex flex-col gap-2 w-full">
                     {messages.map((message) =>

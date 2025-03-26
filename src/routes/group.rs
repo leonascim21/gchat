@@ -18,7 +18,7 @@ struct CreateGroupForm {
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/create", post(create_group_chat))
-
+        .route("/get", get(get_groups))
 }
 
 
@@ -87,4 +87,55 @@ async fn create_group_chat(
     }
     (StatusCode::OK, Json(json!({"message": "Group Created"})))
 
+}
+
+async fn get_groups(
+    State(state): State<Arc<ServerState>>,
+    Query(params): Query<HashMap<String, String>>
+) -> impl IntoResponse {
+    let token = match params.get("token") {
+        None => {
+            return (StatusCode::UNAUTHORIZED, Json(json!({ "error": "Missing token" }))).into_response()
+        }
+        Some(token) => token,
+    };
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    let user_id = match validate_token(token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
+        Err(_) => {
+            return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Invalid token" }))).into_response()
+        }
+    };
+
+    let groups = sqlx::query!(
+        r#"
+        SELECT *
+        FROM groups g
+        JOIN group_members gm ON g.id = gm.group_id
+        WHERE gm.user_id = $1
+        "#,
+        user_id 
+    )
+  .fetch_all(&state.db)
+  .await;
+    match groups {
+        Ok(groups) => {
+            println!("{:?}", groups);
+            let groups_data = groups.iter().map(|g| {
+                json!({
+                    "name": g.name,
+                    "profile_picture": g.profile_picture,
+                    "id": g.id,
+                })
+            }).collect::<Vec<_>>();
+            (StatusCode::OK, Json(groups_data)).into_response()
+        }
+        Err(err) => {
+            eprintln!("Database error: {}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Failed to fetch friendships" })),
+            ).into_response()
+        }
+    }
 }
