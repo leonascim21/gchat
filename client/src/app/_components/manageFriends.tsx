@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Check, MessageSquareShare, Plus, Users, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import axios from "axios";
 import qs from "qs";
 
