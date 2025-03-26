@@ -27,7 +27,6 @@ async fn create_group_chat(
     State(state): State<Arc<ServerState>>,
     extract::Json(form): extract::Json<CreateGroupForm>
 ) -> impl IntoResponse {
-
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
     // Validate the token.
     let claims = match validate_token(&form.token, jwt_key).await {
@@ -85,7 +84,7 @@ async fn create_group_chat(
             }
         }
     }
-    (StatusCode::OK, Json(json!({"message": "Group Created"})))
+    (StatusCode::OK, Json(json!({"message": "Group Created", "group_id": group.id})))
 
 }
 
@@ -120,7 +119,6 @@ async fn get_groups(
   .await;
     match groups {
         Ok(groups) => {
-            println!("{:?}", groups);
             let groups_data = groups.iter().map(|g| {
                 json!({
                     "name": g.name,
@@ -130,12 +128,8 @@ async fn get_groups(
             }).collect::<Vec<_>>();
             (StatusCode::OK, Json(groups_data)).into_response()
         }
-        Err(err) => {
-            eprintln!("Database error: {}", err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Failed to fetch friendships" })),
-            ).into_response()
+        Err(_) => {
+            (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch friendships" }))).into_response()
         }
     }
 }
