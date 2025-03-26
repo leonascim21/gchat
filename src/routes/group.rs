@@ -1,5 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
-use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post}, Extension, Form, Json, Router};
+use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post, put}, Extension, Form, Json, Router};
 use gauth::{validate_token, Auth};
 use serde::Deserialize;
 use serde_json::json;
@@ -33,6 +33,15 @@ struct RemoveUserForm {
     remove_id: i32,
 }
 
+#[derive(Deserialize)]
+struct EditPictureForm {
+    token: String,
+    #[serde(rename = "groupId")]
+    group_id: i32,
+    #[serde(rename = "pictureUrl")]
+    picture_url: String,
+}
+
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/create", post(create_group_chat))
@@ -40,6 +49,7 @@ pub fn router() -> Router<Arc<ServerState>> {
         .route("/get-users", get(get_users_in_group))
         .route("/add-users", post(add_users_to_group))
         .route("/remove-user", post(remove_user_from_group))
+        .route("/edit-picture", put(edit_group_picture))
 }
 
 
@@ -367,3 +377,77 @@ async fn remove_user_from_group(
             }
         }
 }
+
+async fn edit_group_picture(
+    Extension(auth): Extension<Arc<Auth>>,
+    State(state): State<Arc<ServerState>>,
+    Form(form): Form<EditPictureForm>,
+) -> impl IntoResponse {
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    let user_id = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
+        Err(_) => {
+            return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Invalid token" }))).into_response()
+        }
+    };
+
+    let users = sqlx::query!(
+        r#"
+        SELECT *
+        FROM users u
+        JOIN group_members gm ON u.id = gm.user_id
+        WHERE gm.group_id = $1
+        "#,
+        form.group_id
+    ).fetch_all(&state.db).await;
+
+    match users {
+        Ok(users) => {
+            let users_data = users.iter().map(|u| {
+                json!({
+                    "username": u.username,
+                    "profile_picture": u.profile_picture,
+                    "id": u.id,
+                })
+            }).collect::<Vec<_>>();
+
+            let mut user_in_group = false;
+            for user in users_data.iter() {
+                if user["id"] == user_id {
+                    user_in_group = true;
+                    break;
+                }
+            }
+            if !user_in_group {
+                return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "User not in group" }))).into_response()
+            }
+        }
+        Err(_) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch users" }))).into_response()
+        }
+    };
+
+
+        let result = sqlx::query!(
+            r#"
+            UPDATE groups
+            SET profile_picture = $1
+            WHERE id = $2
+            "#,
+            form.picture_url,
+            form.group_id
+        )
+       .execute(&state.db)
+       .await;
+        match result {
+            Ok(_) => {
+                return (StatusCode::OK, Json(json!({"message": "Picture Updated"}))).into_response();
+            }
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to update picture"}))).into_response();
+            }
+        }
+}
+
