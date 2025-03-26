@@ -6,12 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-
-interface Friend {
-  friend_id: number;
-  username: string;
-  profile_picture?: string;
-}
+import type { Friend } from "../fetchData";
 
 interface Props {
   friends: Friend[];
@@ -68,7 +63,6 @@ export function GroupSettingsForm({ friends, groupId }: Props) {
             }
             className="flex flex-col gap-4"
           >
-            <h1>{groupId}</h1>
             <ScrollArea className="h-[150px] pr-4">
               <div className="space-y-2">
                 {friends.map((friend) => (

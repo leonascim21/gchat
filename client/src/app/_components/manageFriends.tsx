@@ -45,11 +45,6 @@ interface FriendRequest {
   username: string;
 }
 
-interface FriendRequestResponse {
-  incoming: FriendRequest[];
-  outgoing: FriendRequest[];
-}
-
 interface AddFriendResponse {
   message: string;
   friend_request: FriendRequest;
@@ -57,31 +52,24 @@ interface AddFriendResponse {
 
 interface Props {
   initialFriends: Friend[];
+  initialIncomingFriends: FriendRequest[];
+  initialOutgoingFriends: FriendRequest[];
 }
 
-export default function ManageFriends({ initialFriends }: Props) {
-  const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>([]);
-  const [outgoingFriends, setOutgoingFriends] = useState<FriendRequest[]>([]);
+export default function ManageFriends({
+  initialFriends,
+  initialIncomingFriends,
+  initialOutgoingFriends,
+}: Props) {
+  const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>(
+    initialIncomingFriends
+  );
+  const [outgoingFriends, setOutgoingFriends] = useState<FriendRequest[]>(
+    initialOutgoingFriends
+  );
   const [friends, setFriends] = useState<Friend[]>(initialFriends);
   const [formMessage, setFormMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    axios
-      .get<FriendRequestResponse>(
-        `https://api.gchat.cloud/friend/get-requests?token=${token}`
-      )
-      .then((response) => {
-        setIncomingFriends(response.data.incoming);
-        setOutgoingFriends(response.data.outgoing);
-      })
-      .catch((error) => {
-        console.error("An unexpected error occurred:", error);
-      });
-  }, []);
 
   function addFriend(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

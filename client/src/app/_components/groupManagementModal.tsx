@@ -18,54 +18,17 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Users, X } from "lucide-react";
-import { users } from "../fakeData/fakeData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { generateProfilePictureSVG } from "../utils";
 import { GroupSettingsForm } from "./groupSettingsForm";
-import { useEffect, useState } from "react";
-import axios from "axios";
-
-interface Friend {
-  friend_id: number;
-  username: string;
-  profile_picture: string;
-}
+import type { Friend, Group } from "../fetchData";
 
 interface Props {
-  groupName: string;
-  groupId: number;
-  profilePicture: string;
+  group: Group;
   friends: Friend[];
 }
 
-export default function GroupManagementModal({
-  groupId,
-  groupName,
-  profilePicture,
-  friends,
-}: Props) {
-  const [groupMembers, setGroupMembers] = useState<Friend[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    axios
-      .get(
-        `http://localhost:3001/group/get-users?token=${token}&group_id=${groupId}`
-      )
-      .then((response) => {
-        setGroupMembers(response.data);
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [groupId]);
+export default function GroupManagementModal({ group, friends }: Props) {
   return (
     <Dialog>
       <SidebarHeader>
@@ -75,7 +38,7 @@ export default function GroupManagementModal({
               <div className="w-full items-center hover:cursor-pointer">
                 <div className="flex flex-row gap-2 text-center items-center">
                   <Avatar>
-                    <AvatarImage src={profilePicture} />
+                    <AvatarImage src={group.profile_picture} />
                     <AvatarFallback>
                       <div className="bg-purple-200 dark:bg-purple-900 rounded-full h-10 w-10 flex items-center justify-center border border-gray-400">
                         <Users className="h-5 w-5 " />
@@ -83,7 +46,7 @@ export default function GroupManagementModal({
                     </AvatarFallback>
                   </Avatar>
                   <p className="hover:text-gray-600 dark:hover:text-gray-400">
-                    {groupName}
+                    {group.name}
                   </p>
                 </div>
               </div>
@@ -92,23 +55,22 @@ export default function GroupManagementModal({
               <DialogTitle className="text-center">
                 <div className="flex flex-row gap-3 items-center text-center justify-center">
                   <Avatar>
-                    <AvatarImage src={profilePicture} />
+                    <AvatarImage src={group.profile_picture} />
                     <AvatarFallback>
                       <div className="bg-purple-200 dark:bg-purple-900 rounded-full h-10 w-10 flex items-center justify-center border border-gray-400">
                         <Users className="h-5 w-5 " />
                       </div>
                     </AvatarFallback>
                   </Avatar>
-
-                  <h1>{groupName}</h1>
+                  <h1>{group.name}</h1>
                 </div>
                 <p className="font-normal text-sm">
-                  {groupMembers.length} members
+                  {group.members.length} members
                 </p>
               </DialogTitle>
               <ScrollArea className="h-[215px] pr-4 pt-5">
-                <div className="space-y-2">
-                  {groupMembers.map((friend) => (
+                <div className="flex flex-col gap-2">
+                  {group.members.map((friend) => (
                     <div
                       key={friend.friend_id}
                       className="space-y-1 flex flex-row gap-3 pb-2 items-center border-b justify-between"
@@ -139,15 +101,16 @@ export default function GroupManagementModal({
                   ))}
                 </div>
               </ScrollArea>
-              {!isLoading && (
-                <GroupSettingsForm
-                  key={groupId}
-                  friends={friends.filter(
-                    (friend) => !groupMembers.includes(friend)
-                  )}
-                  groupId={groupId}
-                />
-              )}
+              <GroupSettingsForm
+                key={group.id}
+                friends={friends.filter(
+                  (friend) =>
+                    !group.members.some(
+                      (member) => member.friend_id === friend.friend_id
+                    )
+                )}
+                groupId={group.id}
+              />
             </DialogContent>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -32,48 +32,24 @@ import { getIdFromJWT, usernameToColor } from "./utils";
 import axios from "axios";
 import AuthModals from "./_components/authModals";
 import GroupManagementModal from "./_components/groupManagementModal";
-
-interface Message {
-  id: number;
-  user_id: number;
-  username: string;
-  content: string;
-  timestamp: string;
-  profile_picture: string;
-}
-
-interface User {
-  userID: number;
-  username: string;
-  profile_picture: string;
-  email: string;
-}
-
-interface Friend {
-  friend_id: number;
-  username: string;
-  profile_picture: string;
-}
-
-interface Group {
-  id: number;
-  name: string;
-  profile_picture: string;
-}
+import { fetchAll } from "./fetchData";
+import type { User, Message, Group, Friend, FriendRequest } from "./fetchData";
 
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
-  const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  useState<number | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [user, setUser] = useState<User | null>(null);
   const [inputMessage, setInputMessage] = useState("");
   const [connected, setConnected] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
+
+  const [selectedChat, setSelectedChat] = useState<number | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>([]);
+  const [outgoingFriends, setOutgoingFriends] = useState<FriendRequest[]>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -85,82 +61,54 @@ export default function Home() {
   }, [selectedChat, messages]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.log("Token not found");
-      setShowAuthModal(true);
-      setInitialLoad(false);
-      return;
-    }
-    axios
-      .get(`https://api.gchat.cloud/check-token?token=${token}`)
-      .then((response) => {
-        if (response.data.valid) {
-          setIsAuth(true);
-          console.log("Token is valid");
-        } else {
-          setShowAuthModal(true);
-          console.log("Token is invalid");
-        }
-      })
-      .catch((error) => {
+    const loadInitialData = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.log("Token not found in localStorage.");
         setShowAuthModal(true);
-        console.error("Error checking token:", error);
-      })
-      .finally(() => setInitialLoad(false));
+        setIsAuth(false);
+        setInitialLoad(false);
+        return;
+      }
+
+      try {
+        const tokenCheckResponse = await axios.get(
+          `https://api.gchat.cloud/check-token?token=${token}`
+        );
+
+        if (!tokenCheckResponse.data.valid) {
+          console.log("Token is invalid.");
+          setShowAuthModal(true);
+          setIsAuth(false);
+          setInitialLoad(false);
+          localStorage.removeItem("token");
+          return;
+        }
+
+        setIsAuth(true);
+        const fetchedData = await fetchAll();
+
+        console.log("Data fetched successfully:", fetchedData);
+
+        setUser(fetchedData.user);
+        setMessages(fetchedData.messages);
+        setGroups(fetchedData.groups);
+        setFriends(fetchedData.friends);
+        setIncomingFriends(fetchedData.incomingFriends);
+        setOutgoingFriends(fetchedData.outgoingFriends);
+      } catch (error) {
+        console.error("Error during initial data load:", error);
+        setShowAuthModal(true);
+        setIsAuth(false);
+        localStorage.removeItem("token");
+      } finally {
+        setInitialLoad(false);
+      }
+    };
+
+    loadInitialData();
   }, []);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token || !isAuth) return;
-
-    axios
-      .get(`https://api.gchat.cloud/get-all-messages?token=${token}`)
-      .then((response) => {
-        setMessages(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching messages:", error);
-      });
-
-    axios
-      .get(`https://api.gchat.cloud/get-user-info?token=${token}`)
-      .then((response) => {
-        setUser(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching user:", error);
-      });
-    axios
-      .get(`https://api.gchat.cloud/get-all-messages?token=${token}`)
-      .then((response) => {
-        setMessages(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching messages:", error);
-      });
-
-    axios
-      .get<Group[]>(`https://api.gchat.cloud/group/get?token=${token}`)
-      .then((response) => {
-        setGroups([
-          { id: -1, name: "Test Chat", profile_picture: "" },
-          ...response.data,
-        ]);
-      })
-      .catch((error) => {
-        console.error("Error fetching groups:", error);
-      });
-
-    axios
-      .get<Friend[]>(`https://api.gchat.cloud/friend/get?token=${token}`)
-      .then((response) => {
-        setFriends(response.data);
-      })
-      .catch((error) => {
-        console.error("An unexpected error occurred:", error);
-      });
-  }, [isAuth]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -204,19 +152,6 @@ export default function Home() {
       wsRef.current.send(inputMessage);
       setInputMessage("");
     }
-
-    /*
-    const payload = {
-      message: inputMessage,
-      group_id: selectedChat,
-      sender_id: 1,
-    };
-    if (inputMessage.trim() && wsRef.current) {
-      console.log("sent");
-      wsRef.current.send(JSON.stringify(payload));
-      setInputMessage("");
-    }
-      */
   };
 
   if (initialLoad) {
@@ -253,8 +188,12 @@ export default function Home() {
         <Sidebar>
           <h1 className="text-md font-semibold text-center pt-4">GChat</h1>
           <div className="flex flex-row justify-between">
-            <CreateChatForm addGroupChat={addGroupChat} />
-            <ManageFriends initialFriends={friends} />
+            <CreateChatForm addGroupChat={addGroupChat} friends={friends} />
+            <ManageFriends
+              initialFriends={friends}
+              initialIncomingFriends={incomingFriends}
+              initialOutgoingFriends={outgoingFriends}
+            />
           </div>
           <div className="px-3 py-1 mb-2">
             <Input
@@ -340,15 +279,7 @@ export default function Home() {
                   "Test Chat"
                 ) : (
                   <GroupManagementModal
-                    groupName={
-                      groups.find((chat) => chat.id === selectedChat)?.name ??
-                      "unknown"
-                    }
-                    groupId={selectedChat}
-                    profilePicture={
-                      groups.find((chat) => chat.id === selectedChat)
-                        ?.profile_picture ?? ""
-                    }
+                    group={groups.find((group) => group.id === selectedChat)!}
                     friends={friends}
                   ></GroupManagementModal>
                 )

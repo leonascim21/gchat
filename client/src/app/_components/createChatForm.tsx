@@ -33,19 +33,9 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import axios from "axios";
-
-interface Friend {
-  friend_id: number;
-  username: string;
-}
-
-interface Group {
-  id: number;
-  name: string;
-  profile_picture: string;
-}
+import type { Group, Friend } from "../fetchData";
 
 interface CreateGroupResponse {
   group_id: number;
@@ -54,31 +44,12 @@ interface CreateGroupResponse {
 
 interface Props {
   addGroupChat: (chat: Group) => void;
+  friends: Friend[];
 }
 
-export default function CreateChatForm({ addGroupChat }: Props) {
-  const [friends, setFriends] = useState<Friend[]>([]);
+export default function CreateChatForm({ addGroupChat, friends }: Props) {
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    setIsLoading(true);
-
-    axios
-      .get<Friend[]>(`https://api.gchat.cloud/friend/get?token=${token}`)
-      .then((response) => {
-        setFriends(response.data);
-      })
-      .catch((error) => {
-        console.error("An unexpected error occurred:", error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []);
 
   const handleCheckboxChange = (friendId: number, checked: boolean) => {
     setSelectedMemberIds((prev) => {
@@ -97,6 +68,7 @@ export default function CreateChatForm({ addGroupChat }: Props) {
     if (!token) {
       return;
     }
+    setIsLoading(true);
 
     const payload = {
       token: token,
@@ -114,11 +86,13 @@ export default function CreateChatForm({ addGroupChat }: Props) {
           id: response.data.group_id,
           name: payload.groupName,
           profile_picture: "",
+          members: [],
         });
       })
       .catch((error) => {
         console.error(error);
-      });
+      })
+      .finally(() => setIsLoading(false));
   }
 
   return (
