@@ -31,6 +31,7 @@ import SettingsModal from "./_components/settingsModal";
 import { getIdFromJWT, usernameToColor } from "./utils";
 import axios from "axios";
 import AuthModals from "./_components/authModals";
+import GroupManagementModal from "./_components/groupManagementModal";
 
 interface Message {
   id: number;
@@ -310,9 +311,25 @@ export default function Home() {
               </SidebarTrigger>
             </div>
             <h1 className="font-semibold ">
-              {selectedChat
-                ? groups.find((chat) => chat.id === selectedChat)?.name
-                : "Select a chat"}
+              {selectedChat ? (
+                selectedChat == -1 ? (
+                  "Test Chat"
+                ) : (
+                  <GroupManagementModal
+                    groupName={
+                      groups.find((chat) => chat.id === selectedChat)?.name ??
+                      "unknown"
+                    }
+                    groupId={selectedChat}
+                    profilePicture={
+                      groups.find((chat) => chat.id === selectedChat)
+                        ?.profile_picture ?? ""
+                    }
+                  ></GroupManagementModal>
+                )
+              ) : (
+                "Select a chat"
+              )}
             </h1>
             <div className="flex flex-row items-center gap-3">
               <Ping connected={connected} />
