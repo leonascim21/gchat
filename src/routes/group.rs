@@ -205,13 +205,13 @@ async fn get_users_in_group(
                 json!({
                     "username": u.username,
                     "profile_picture": u.profile_picture,
-                    "id": u.id,
+                    "friend_id": u.id,
                 })
             }).collect::<Vec<_>>();
 
             let mut user_in_group = false;
             for user in users_data.iter() {
-                if user["id"] == user_id {
+                if user["friend_id"] == user_id {
                     user_in_group = true;
                     break;
                 }
