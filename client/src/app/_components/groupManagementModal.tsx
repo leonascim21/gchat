@@ -22,13 +22,40 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GroupSettingsForm } from "./groupSettingsForm";
 import type { Friend, Group } from "../fetchData";
+import axios from "axios";
+import qs from "qs";
 
 interface Props {
   group: Group;
   friends: Friend[];
+  removeGroupMember: (friendId: number, groupId: number) => void;
+  addGroupMember: (memberIds: number[], groupId: number) => void;
 }
 
-export default function GroupManagementModal({ group, friends }: Props) {
+export default function GroupManagementModal({
+  group,
+  friends,
+  removeGroupMember,
+  addGroupMember,
+}: Props) {
+  const handleRemove = async (friendId: number) => {
+    const payload = qs.stringify({
+      token: localStorage.getItem("token"),
+      removeId: friendId,
+      groupId: group.id,
+    });
+    axios
+      .post("https://api.gchat.cloud/group/remove-user", payload)
+      .then((response) => {
+        if (response.status === 200) {
+          removeGroupMember(friendId, group.id);
+        }
+      })
+      .catch((error) => {
+        console.error("An unexpected error occurred:", error);
+      });
+  };
+
   return (
     <Dialog>
       <SidebarHeader>
@@ -89,7 +116,10 @@ export default function GroupManagementModal({ group, friends }: Props) {
                         <TooltipProvider delayDuration={0}>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <X className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer" />
+                              <X
+                                onClick={() => handleRemove(friend.friend_id)}
+                                className="h-4 w-4 font-semibold hover:text-primary hover:cursor-pointer"
+                              />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Remove from group</p>
@@ -110,6 +140,7 @@ export default function GroupManagementModal({ group, friends }: Props) {
                     )
                 )}
                 groupId={group.id}
+                addGroupMember={addGroupMember}
               />
             </DialogContent>
           </SidebarMenuItem>

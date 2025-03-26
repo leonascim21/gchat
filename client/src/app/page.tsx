@@ -140,6 +140,40 @@ export default function Home() {
     setGroups((prev) => [...prev, newGroup]);
   };
 
+  const addGroupMember = (memberIds: number[], groupId: number) => {
+    const membersToAdd: Friend[] = friends.filter((f) =>
+      memberIds.includes(f.friend_id)
+    );
+
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            members: [...group.members, ...membersToAdd],
+          };
+        }
+        return group;
+      })
+    );
+  };
+
+  const removeGroupMember = (friendId: number, groupId: number) => {
+    setGroups((prev) =>
+      prev.map((group) => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            members: group.members.filter(
+              (member) => member.friend_id !== friendId
+            ),
+          };
+        }
+        return group;
+      })
+    );
+  };
+
   const logOut = () => {
     localStorage.removeItem("token");
     setShowAuthModal(true);
@@ -281,7 +315,9 @@ export default function Home() {
                   <GroupManagementModal
                     group={groups.find((group) => group.id === selectedChat)!}
                     friends={friends}
-                  ></GroupManagementModal>
+                    removeGroupMember={removeGroupMember}
+                    addGroupMember={addGroupMember}
+                  />
                 )
               ) : (
                 "Select a chat"

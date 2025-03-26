@@ -83,7 +83,7 @@ export async function fetchAll() {
     for (const group of groups) {
       try {
         const membersResponse = await axios.get<Friend[]>(
-          `http://api.gchat.cloud/group/get-users?token=${token}&group_id=${group.id}`
+          `https://api.gchat.cloud/group/get-users?token=${token}&group_id=${group.id}`
         );
         group.members = membersResponse.data;
       } catch (error) {

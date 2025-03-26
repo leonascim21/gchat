@@ -5,17 +5,58 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import type { Friend } from "../fetchData";
+import axios from "axios";
 
 interface Props {
   friends: Friend[];
   groupId: number;
+  addGroupMember: (memberIds: number[], groupId: number) => void;
 }
 
-export function GroupSettingsForm({ friends, groupId }: Props) {
+export function GroupSettingsForm({ friends, groupId, addGroupMember }: Props) {
   const [usersOpen, setUsersOpen] = useState(false);
   const [pictureOpen, setPictureOpen] = useState(false);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCheckboxChange = (friendId: number, isChecked: boolean) => {
+    if (isChecked) {
+      setSelectedMemberIds([...selectedMemberIds, friendId]);
+    } else {
+      setSelectedMemberIds(selectedMemberIds.filter((id) => id !== friendId));
+    }
+  };
+
+  function addMember(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+    setIsLoading(true);
+
+    const memberIds = selectedMemberIds;
+    const payload = {
+      token: token,
+      newMemberIds: memberIds,
+      groupId: groupId,
+    };
+    console.log(payload);
+    axios
+      .post("https://api.gchat.cloud/group/add-users", payload)
+      .then((response) => {
+        if (response.status === 200) {
+          addGroupMember(memberIds, groupId);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => setIsLoading(false));
+  }
 
   return (
     <div>
@@ -56,13 +97,7 @@ export function GroupSettingsForm({ friends, groupId }: Props) {
       )}
       {usersOpen && (
         <div>
-          <form
-            onSubmit={
-              (e) => console.log(e)
-              //createGroupChat(e)
-            }
-            className="flex flex-col gap-4"
-          >
+          <form onSubmit={(e) => addMember(e)} className="flex flex-col gap-4">
             <ScrollArea className="h-[150px] pr-4">
               <div className="space-y-2">
                 {friends.map((friend) => (
@@ -72,8 +107,7 @@ export function GroupSettingsForm({ friends, groupId }: Props) {
                   >
                     <Checkbox
                       onCheckedChange={(e) =>
-                        //handleCheckboxChange(friend.friend_id, e as boolean)
-                        console.log(e)
+                        handleCheckboxChange(friend.friend_id, e as boolean)
                       }
                     />
 
