@@ -158,6 +158,20 @@ export default function Home() {
     );
   };
 
+  const editGroupPicture = (groupId: number, pictureUrl: string) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            profile_picture: pictureUrl,
+          };
+        }
+        return group;
+      })
+    );
+  };
+
   const removeGroupMember = (friendId: number, groupId: number) => {
     setGroups((prev) =>
       prev.map((group) => {
@@ -317,6 +331,7 @@ export default function Home() {
                     friends={friends}
                     removeGroupMember={removeGroupMember}
                     addGroupMember={addGroupMember}
+                    editGroupPicture={editGroupPicture}
                   />
                 )
               ) : (

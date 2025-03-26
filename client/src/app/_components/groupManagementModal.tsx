@@ -30,6 +30,7 @@ interface Props {
   friends: Friend[];
   removeGroupMember: (friendId: number, groupId: number) => void;
   addGroupMember: (memberIds: number[], groupId: number) => void;
+  editGroupPicture: (groupId: number, pictureUrl: string) => void;
 }
 
 export default function GroupManagementModal({
@@ -37,6 +38,7 @@ export default function GroupManagementModal({
   friends,
   removeGroupMember,
   addGroupMember,
+  editGroupPicture,
 }: Props) {
   const handleRemove = async (friendId: number) => {
     const payload = qs.stringify({
@@ -141,6 +143,7 @@ export default function GroupManagementModal({
                 )}
                 groupId={group.id}
                 addGroupMember={addGroupMember}
+                editGroupPicture={editGroupPicture}
               />
             </DialogContent>
           </SidebarMenuItem>

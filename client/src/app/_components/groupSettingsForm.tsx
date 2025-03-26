@@ -8,14 +8,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FormEvent, useState } from "react";
 import type { Friend } from "../fetchData";
 import axios from "axios";
+import qs from "qs";
 
 interface Props {
   friends: Friend[];
   groupId: number;
   addGroupMember: (memberIds: number[], groupId: number) => void;
+  editGroupPicture: (groupId: number, pictureUrl: string) => void;
 }
 
-export function GroupSettingsForm({ friends, groupId, addGroupMember }: Props) {
+export function GroupSettingsForm({
+  friends,
+  groupId,
+  addGroupMember,
+  editGroupPicture,
+}: Props) {
   const [usersOpen, setUsersOpen] = useState(false);
   const [pictureOpen, setPictureOpen] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
@@ -58,6 +65,35 @@ export function GroupSettingsForm({ friends, groupId, addGroupMember }: Props) {
       .finally(() => setIsLoading(false));
   }
 
+  function editPicture(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+    setIsLoading(true);
+
+    const pictureUrl = e.currentTarget.pictureUrl.value;
+    const payload = {
+      token: token,
+      groupId: groupId,
+      pictureUrl: pictureUrl,
+    };
+    console.log(payload);
+    axios
+      .put("https://api.gchat.cloud/group/edit-picture", qs.stringify(payload))
+      .then((response) => {
+        if (response.status === 200) {
+          editGroupPicture(groupId, pictureUrl);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => setIsLoading(false));
+  }
+
   return (
     <div>
       <div className="flex flex-row justify-between">
@@ -77,21 +113,15 @@ export function GroupSettingsForm({ friends, groupId, addGroupMember }: Props) {
         </Button>
       </div>
       {pictureOpen && (
-        <form
-          onSubmit={
-            (e) => console.log(e)
-            //createGroupChat(e)
-          }
-          className="flex flex-row gap-4"
-        >
+        <form onSubmit={(e) => editPicture(e)} className="flex flex-row gap-4">
           <Input
             type="text"
-            name="pictureURL"
+            name="pictureUrl"
             placeholder="Picture URL"
             className="w-[70%]"
           />
-          <Button className="w-[30%]" type="submit">
-            Change Picture
+          <Button className="w-[30%]" type="submit" disabled={isLoading}>
+            {isLoading ? "..." : "Change Picture"}
           </Button>
         </form>
       )}
@@ -116,8 +146,8 @@ export function GroupSettingsForm({ friends, groupId, addGroupMember }: Props) {
                 ))}
               </div>
             </ScrollArea>
-            <Button className="w-[30%]" type="submit">
-              Add Friends
+            <Button className="w-[30%]" type="submit" disabled={isLoading}>
+              {isLoading ? "..." : "Add Friends"}
             </Button>
           </form>
         </div>
