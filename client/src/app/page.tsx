@@ -316,7 +316,11 @@ export default function Home() {
           ) : selectedChat !== -1 ? (
             <div></div>
           ) : (
-            <TestChat user={user} initialMessages={messages} />
+            <TestChat
+              user={user}
+              initialMessages={messages}
+              updatePing={(isConnected) => setConnected(isConnected)}
+            />
           )}
         </SidebarInset>
       </SidebarProvider>

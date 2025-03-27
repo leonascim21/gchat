@@ -9,9 +9,10 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 interface Props {
   initialMessages: Message[];
   user: User | null;
+  updatePing: (isConnected: boolean) => void;
 }
 
-export default function TestChat({ initialMessages, user }: Props) {
+export default function TestChat({ initialMessages, user, updatePing }: Props) {
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
 
@@ -44,6 +45,7 @@ export default function TestChat({ initialMessages, user }: Props) {
 
     ws.onopen = () => {
       setConnected(true);
+      updatePing(true);
       console.log("Connected to WebSocket server");
     };
 
@@ -53,6 +55,7 @@ export default function TestChat({ initialMessages, user }: Props) {
 
     ws.onclose = () => {
       setConnected(false);
+      updatePing(false);
       console.log("Disconnected from WebSocket server");
     };
 
