@@ -52,6 +52,7 @@ export default function Home() {
 
   useEffect(() => {
     const loadInitialData = async () => {
+      setInitialLoad(true);
       const token = localStorage.getItem("token");
 
       if (!token) {
@@ -156,6 +157,13 @@ export default function Home() {
     localStorage.removeItem("token");
     setShowAuthModal(true);
     setIsAuth(false);
+
+    setUser(null);
+    setMessages([]);
+    setGroups([]);
+    setFriends([]);
+    setIncomingFriends([]);
+    setOutgoingFriends([]);
   };
 
   if (initialLoad) {
