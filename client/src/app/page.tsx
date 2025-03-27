@@ -2,8 +2,8 @@
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { LogOut, Menu, MessageSquare, Send, Users } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { LogOut, Menu, MessageSquare, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import Ping from "./_components/ping";
 import ThemeToggle from "./_components/theme-toggle";
 import {
@@ -38,7 +38,6 @@ import TestChat from "./_components/testChat";
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [inputMessage, setInputMessage] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [connected, setConnected] = useState(false);
