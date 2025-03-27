@@ -68,6 +68,11 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
     if (!token) {
       return;
     }
+
+    if (selectedMemberIds.length === 0) {
+      return;
+    }
+
     setIsLoading(true);
 
     const payload = {
@@ -141,6 +146,7 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
                           name="groupName"
                           placeholder="Chat name"
                           className="w-full"
+                          required
                         />
                         <ScrollArea className="h-[150px] pr-4">
                           <div className="space-y-2">
