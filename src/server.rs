@@ -128,7 +128,7 @@ async fn main() {
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -169,7 +169,7 @@ async fn get_all_messages(
                             "content": m.content,
                             "user_id": m.user_id,
                             "username": m.username,
-                            "timestamp": m.timestamp.to_string(),
+                            "timestamp": m.timestamp.to_rfc3339(),
                             "profile_picture": m.profile_picture
                         })
                     }).collect::<Vec<_>>();
