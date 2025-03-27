@@ -51,7 +51,6 @@ export function GroupSettingsForm({
       newMemberIds: memberIds,
       groupId: groupId,
     };
-    console.log(payload);
     axios
       .post("https://api.gchat.cloud/group/add-users", payload)
       .then((response) => {
@@ -80,7 +79,6 @@ export function GroupSettingsForm({
       groupId: groupId,
       pictureUrl: pictureUrl,
     };
-    console.log(payload);
     axios
       .put("https://api.gchat.cloud/group/edit-picture", qs.stringify(payload))
       .then((response) => {

@@ -75,7 +75,6 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
       groupName: e.currentTarget.groupName.value,
       memberIds: selectedMemberIds,
     };
-    console.log(payload);
     axios
       .post<CreateGroupResponse>(
         "https://api.gchat.cloud/group/create",

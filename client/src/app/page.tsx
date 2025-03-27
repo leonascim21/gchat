@@ -89,7 +89,7 @@ export default function Home() {
         setIsAuth(true);
         const fetchedData = await fetchAll();
 
-        console.log("Data fetched successfully:", fetchedData);
+        console.log("Data fetched successfully:");
 
         setUser(fetchedData.user);
         setMessages(fetchedData.messages);
