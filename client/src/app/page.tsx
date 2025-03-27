@@ -98,7 +98,7 @@ export default function Home() {
     };
 
     loadInitialData();
-  }, []);
+  }, [isAuth]);
 
   const addGroupChat = (newGroup: Group) => {
     setGroups((prev) => [...prev, newGroup]);
