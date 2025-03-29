@@ -36,7 +36,7 @@ export default function TestChat({ initialMessages, user, updatePing }: Props) {
 
   const wsRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
+  const connectWebsocket = () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -57,11 +57,18 @@ export default function TestChat({ initialMessages, user, updatePing }: Props) {
       setConnected(false);
       updatePing(false);
       console.log("Disconnected from WebSocket server");
+      console.log("Attempting to reconnect...");
+      connectWebsocket();
     };
 
     return () => {
       ws.close();
     };
+  };
+
+  useEffect(() => {
+    const cleanup = connectWebsocket();
+    return cleanup;
   }, []);
 
   if (user === null) {
