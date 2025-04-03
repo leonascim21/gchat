@@ -1,4 +1,12 @@
 use serde::Deserialize;
+
+pub struct Group {
+    pub id: i32,
+    pub name: String,
+    pub profile_picture: Option<String>,
+}
+
+
 #[derive(Deserialize)]
 pub struct CreateGroupForm {
     pub token: String,

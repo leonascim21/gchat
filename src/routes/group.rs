@@ -1,11 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post, put}, Extension, Form, Json, Router};
 use gauth::{validate_token, Auth};
-use serde::Deserialize;
 use serde_json::json;
 
-use crate::{state::ServerState, utils::queries::fetch_groups_for_user};
+use crate::state::ServerState;
 use crate::utils::types::{CreateGroupForm, AddUsersForm, RemoveUserForm, EditPictureForm};
+use crate::utils::queries::{fetch_group_members, fetch_groups_for_user, add_group_member};
 
 
 
@@ -61,18 +61,7 @@ async fn create_group_chat(
     member_ids.push(claims.sub.parse::<i32>().unwrap());
     
     for member_id in member_ids {
-        let result = sqlx::query!(
-            r#"
-            INSERT INTO group_members (group_id, user_id)
-            VALUES ($1, $2)
-            "#,
-            group.id,
-            member_id
-        )
-        .execute(&state.db)
-        .await;
-
-        match result {
+        match add_group_member(member_id, group.id, &state.db).await {
             Ok(_) => {}
             Err(_) => {
                 return (
@@ -142,20 +131,10 @@ async fn get_users_in_group(
         None => {
             return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing group_id" }))).into_response()
         }
-        Some(group_id) => group_id,
+        Some(group_id) => group_id.parse::<i32>().unwrap(),
     };
-    let group_id = group_id.parse::<i32>().unwrap();
-    let users = sqlx::query!(
-        r#"
-        SELECT *
-        FROM users u
-        JOIN group_members gm ON u.id = gm.user_id
-        WHERE gm.group_id = $1
-        "#,
-        group_id
-    ).fetch_all(&state.db).await;
 
-    match users {
+    match fetch_group_members(group_id, &state.db).await {
         Ok(users) => {
             let users_data = users.iter().map(|u| {
                 json!({
@@ -186,7 +165,6 @@ async fn get_users_in_group(
 
 
 async fn add_users_to_group(
-    Extension(auth): Extension<Arc<Auth>>,
     State(state): State<Arc<ServerState>>,
     extract::Json(form): extract::Json<AddUsersForm>
 ) -> impl IntoResponse {
@@ -235,17 +213,7 @@ async fn add_users_to_group(
     };
 
     for member_id in form.new_member_ids {
-        let result = sqlx::query!(
-            r#"
-            INSERT INTO group_members (group_id, user_id)
-            VALUES ($1, $2)
-            "#,
-            form.group_id,
-            member_id
-        )
-       .execute(&state.db)
-       .await;
-        match result {
+        match add_group_member(member_id, form.group_id, &state.db).await {
             Ok(_) => {}
             Err(_) => {
                 return (
