@@ -42,3 +42,58 @@ pub async fn add_group_member(user_id: i32, group_id: i32, db: &PgPool) -> Resul
     .await?;
     Ok(())
 }
+
+pub async fn create_group(group_name: String, db: &PgPool) -> Result<i32, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        INSERT INTO groups (name)
+        VALUES ($1)
+        RETURNING id
+        "#,
+        group_name
+    ).fetch_one(db).await?;
+
+    Ok(result.id)
+}
+
+pub async fn remove_group_member(user_id: i32, group_id: i32, db: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        DELETE
+        FROM group_members
+        WHERE group_id = $1 AND user_id = $2
+        "#,
+        group_id,
+        user_id
+    )
+    .execute(db)
+    .await?;
+    Ok(())
+}
+
+pub async fn is_user_in_group(user_id: i32, group_id: i32, db: &PgPool) -> Result<(), sqlx::Error> {
+    let members =  fetch_group_members(group_id, db).await?;
+
+        for member in members.iter() {
+            if member.id == user_id {
+                return Ok(());
+            }
+        }
+
+        Err(sqlx::Error::RowNotFound)
+}
+
+pub async fn change_group_picture(group_id: i32, picture_url: String, db: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        UPDATE groups
+        SET profile_picture = $1
+        WHERE id = $2
+        "#,
+        picture_url,
+        group_id
+    )
+    .execute(db)
+    .await?;
+    Ok(())
+}
