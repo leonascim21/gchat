@@ -1,59 +1,40 @@
-use axum::extract::ws::WebSocket;
-use axum::http::header;
-use axum::http::Request;
-use axum::http::{HeaderValue, Method};
-use axum::middleware::{self, Next};
-use axum::response::Response;
-use dotenv::dotenv;
-use futures_util::{SinkExt, StreamExt};
-use serde::Deserialize;
-use serde_json::json;
-use sqlx::postgres::PgPoolOptions;
-use state::ServerState;
-use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::sync::broadcast;
-use tower_http::cors::{Any, CorsLayer};
-
-use gauth::models::{Auth, Claims, User};
-use gauth::{jwt, validate_token};
 mod state;
 mod routes;
+mod utils;
+
+use axum::extract::ws::WebSocket;
+use axum::http::header;
+use axum::http::{HeaderValue, Method};
 use axum::extract::Form;
 use axum::http::StatusCode;
-use axum::response::{Html, Redirect};
+use axum::response::Html;
 use axum::routing::{get, post};
 use axum::Extension;
 use axum::{
     extract::{ws::Message, Query, State, WebSocketUpgrade},
     response::IntoResponse,
-    routing::{any, Router},
+    routing::Router,
     Json,
 };
 
+use dotenv::dotenv;
+use futures_util::{SinkExt, StreamExt};
+use gauth::models::{Auth, Claims, User};
+use gauth::validate_token;
+use serde_json::json;
+use sqlx::postgres::PgPoolOptions;
+use state::ServerState;
+
+use std::sync::Arc;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::time::Duration;
 use std::time::SystemTime;
 
+use tokio::net::TcpListener;
+use tokio::sync::broadcast;
 
-#[derive(Deserialize)]
-struct RegisterForm {
-    username: String,
-    email: String,
-    password: String,
-    #[serde(rename = "confirmPassword")]
-    confirm_password: String,
-    #[serde(rename = "profilePicture")]
-    profile_picture: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct LoginForm {
-    username: String,
-    password: String,
-}
-
+use tower_http::cors::CorsLayer;
+use utils::types::{LoginForm, RegisterForm};
 
 #[tokio::main]
 async fn main() {

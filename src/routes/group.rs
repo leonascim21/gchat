@@ -4,43 +4,10 @@ use gauth::{validate_token, Auth};
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::state::ServerState;
+use crate::{state::ServerState, utils::queries::fetch_groups_for_user};
+use crate::utils::types::{CreateGroupForm, AddUsersForm, RemoveUserForm, EditPictureForm};
 
-#[derive(Deserialize)]
-struct CreateGroupForm {
-    token: String,
-    #[serde(rename = "groupName")]
-    group_name: String,
-    #[serde(rename = "memberIds")]
-    member_ids: Vec<i32>,
-}
 
-#[derive(Deserialize)]
-struct AddUsersForm {
-    token: String,
-    #[serde(rename = "groupId")]
-    group_id: i32,
-    #[serde(rename = "newMemberIds")]
-    new_member_ids: Vec<i32>,
-}
-
-#[derive(Deserialize)]
-struct RemoveUserForm {
-    token: String,
-    #[serde(rename = "groupId")]
-    group_id: i32,
-    #[serde(rename = "removeId")]
-    remove_id: i32,
-}
-
-#[derive(Deserialize)]
-struct EditPictureForm {
-    token: String,
-    #[serde(rename = "groupId")]
-    group_id: i32,
-    #[serde(rename = "pictureUrl")]
-    picture_url: String,
-}
 
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
@@ -137,18 +104,7 @@ async fn get_groups(
         }
     };
 
-    let groups = sqlx::query!(
-        r#"
-        SELECT *
-        FROM groups g
-        JOIN group_members gm ON g.id = gm.group_id
-        WHERE gm.user_id = $1
-        "#,
-        user_id 
-    )
-  .fetch_all(&state.db)
-  .await;
-    match groups {
+    match fetch_groups_for_user(user_id, &state.db).await {
         Ok(groups) => {
             let groups_data = groups.iter().map(|g| {
                 json!({
