@@ -1,45 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 use axum::{extract::{Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post}, Extension, Form, Json, Router};
 use gauth::{validate_token, Auth};
-use serde::Deserialize;
 use serde_json::json;
+
+use crate::utils::{queries::{create_friendship, delete_friend_request, delete_friendship, fetch_friend_request}, types::{FriendForm, FriendRequestForm}};
+use crate::utils::queries::{fetch_friends_for_user, create_friend_request, fetch_incoming_requests, fetch_outgoing_requests};
 
 use crate::state::ServerState;
 
-#[derive(Deserialize)]
-struct FriendRequestForm {
-    #[serde(rename = "receiverUsername")]
-    receiver_username: String,
-    token: String,
-}
 
-#[derive(Deserialize)]
-struct AcceptFriendRequestForm {
-    #[serde(rename = "userId")]
-    user_id: i32,
-    token: String,
-}
-
-#[derive(Deserialize)]
-struct CancelFriendRequestForm {
-    #[serde(rename = "userId")]
-    user_id: i32,
-    token: String,
-}
-
-#[derive(Deserialize)]
-struct DenyFriendRequestForm {
-    #[serde(rename = "userId")]
-    user_id: i32,
-    token: String,
-}
-
-#[derive(Deserialize)]
-struct RemoveFriendForm {
-    #[serde(rename = "userId")]
-    user_id: i32,
-    token: String,
-}
 
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
@@ -69,23 +38,12 @@ async fn get_friendships(
             return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Invalid token" }))).into_response()
         }
     };
-
-    let friendship = sqlx::query!(
-        r#"
-        SELECT f.friend_id, u.username 
-        FROM friendships f 
-        JOIN users u ON f.friend_id = u.id 
-        WHERE f.user_id = $1
-        "#,
-        user_id
-    )
-  .fetch_all(&state.db)
-  .await;
-    match friendship {
+    
+    match fetch_friends_for_user(user_id, &state.db).await {
         Ok(friendships) => {
             let friendship_data = friendships.iter().map(|f| {
                 json!({
-                    "friend_id": f.friend_id,
+                    "friend_id": f.id,
                     "username": f.username,
                 })
             }).collect::<Vec<_>>();
@@ -120,19 +78,7 @@ async fn get_friend_requests(
         }
     };
 
-    let outgoing_result = sqlx::query!(
-        r#"
-        SELECT fr.sender_id, fr.receiver_id, u.username
-        FROM friend_requests fr
-        JOIN users u ON fr.receiver_id = u.id
-        WHERE fr.sender_id = $1
-        "#,
-        user_id
-    )
-    .fetch_all(&state.db)
-    .await;
-
-    let outgoing_requests = match outgoing_result {
+    let outgoing_requests = match fetch_outgoing_requests(user_id, &state.db).await {
         Ok(requests) => requests
             .iter()
             .map(|r| {
@@ -148,19 +94,7 @@ async fn get_friend_requests(
         }
     };
 
-    let incoming_result = sqlx::query!(
-        r#"
-        SELECT fr.sender_id, fr.receiver_id, u.username
-        FROM friend_requests fr
-        JOIN users u ON fr.sender_id = u.id
-        WHERE fr.receiver_id = $1
-        "#,
-        user_id
-    )
-    .fetch_all(&state.db)
-    .await;
-
-    let incoming_requests = match incoming_result {
+    let incoming_requests = match fetch_incoming_requests(user_id, &state.db).await {
         Ok(requests) => requests
             .iter()
             .map(|r| {
@@ -187,8 +121,8 @@ async fn send_friend_request(
 
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
     // Validate the token.
-    let claims = match validate_token(&form.token, jwt_key).await {
-        Ok(claims) => claims,
+    let user_id = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
         Err(_) => {
             return (
                 StatusCode::UNAUTHORIZED,
@@ -209,28 +143,9 @@ async fn send_friend_request(
             );
         }
     };
-    let result = sqlx::query!(
-        r#"
-        WITH inserted AS (
-            INSERT INTO friend_requests (sender_id, receiver_id)
-            VALUES ($1, $2)
-            RETURNING sender_id, receiver_id
-        )
-        SELECT i.sender_id, i.receiver_id, u.username
-        FROM inserted i
-        JOIN users u ON i.receiver_id = u.id
-        "#,
-        claims.sub.parse::<i32>().unwrap(),
-        receiver.id,
-    ).fetch_one(&state.db).await;
-    match result {
-        Ok(record) => {
-            let friend_request = json!({
-                "receiver_id:": record.receiver_id,
-                "sender_id": record.sender_id,
-                "username": record.username,
-            });
-            
+    match create_friend_request(user_id, receiver.id.unwrap(), &state.db).await {
+        Ok(request) => {
+            let friend_request = json!(request);
             (StatusCode::OK, Json(json!({"message": "Friend request sent successfully", "friend_request": friend_request})))
     },
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"message": "Failed to send friend request" }))),
@@ -239,12 +154,12 @@ async fn send_friend_request(
 
 async fn accept_friend_request(
     State(state): State<Arc<ServerState>>,
-    Form(form): Form<AcceptFriendRequestForm>,
+    Form(form): Form<FriendForm>,
 ) -> impl IntoResponse {
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
     // Validate the token.
-    let claims = match validate_token(&form.token, jwt_key).await {
-        Ok(claims) => claims,
+    let user_id = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
         Err(_) => {
             return (
                 StatusCode::UNAUTHORIZED,
@@ -253,18 +168,9 @@ async fn accept_friend_request(
         }
     };
 
-    let existing_request = sqlx::query!(
-        r#"
-        SELECT * 
-        FROM friend_requests 
-        WHERE sender_id = $1 AND receiver_id = $2
-        "#,
-        form.user_id,
-        claims.sub.parse::<i32>().unwrap()
-    ).fetch_one(&state.db).await;
-
-    let existing_request = match existing_request {
-        Ok(existing_request) => existing_request,
+    //FETCHING FRIEND REQUEST TO CHECK IF IT EXISTS BEFORE CREATING FRIENDSHIP
+    match fetch_friend_request(form.user_id, user_id, &state.db).await {
+        Ok(_) => {},
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -272,34 +178,11 @@ async fn accept_friend_request(
             );
         }
     };
-    let added_friend = sqlx::query!(
-        r#"
-        INSERT INTO friendships (user_id, friend_id)
-        VALUES ($1, $2);
-        "#,
-        form.user_id,
-        claims.sub.parse::<i32>().unwrap()
-    ).execute(&state.db).await;
 
-    let reverse_friend = sqlx::query!(
-        r#"
-        INSERT INTO friendships (user_id, friend_id)
-        VALUES ($1, $2);
-        "#,
-        claims.sub.parse::<i32>().unwrap(),
-        form.user_id,
-    ).execute(&state.db).await;
-
-    let delete_request = sqlx::query!(
-        r#"
-        DELETE
-        FROM friend_requests 
-        WHERE sender_id = $1 AND receiver_id = $2
-        "#,
-        form.user_id,
-        claims.sub.parse::<i32>().unwrap()
-    ).execute(&state.db).await;
-
+    let added_friend = create_friendship(user_id, form.user_id, &state.db).await;
+    let reverse_friend = create_friendship(form.user_id, user_id, &state.db).await;
+    let delete_request = delete_friend_request(form.user_id, user_id, &state.db).await;
+    
     match (added_friend, reverse_friend, delete_request) {
         (Ok(_), Ok(_), Ok(_)) => {
             (StatusCode::OK, Json(json!({"message": "Friend request accepted"})))
@@ -314,12 +197,12 @@ async fn accept_friend_request(
 
 async fn cancel_friend_request(
     State(state): State<Arc<ServerState>>,
-    Form(form): Form<CancelFriendRequestForm>,
+    Form(form): Form<FriendForm>,
 ) -> impl IntoResponse {
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
     // Validate the token.
-    let claims = match validate_token(&form.token, jwt_key).await {
-        Ok(claims) => claims,
+    let user_id = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
         Err(_) => {
             return (
                 StatusCode::UNAUTHORIZED,
@@ -328,21 +211,11 @@ async fn cancel_friend_request(
         }
     };
 
-    let delete_request = sqlx::query!(
-        r#"
-        DELETE
-        FROM friend_requests 
-        WHERE sender_id = $1 AND receiver_id = $2
-        "#,
-        claims.sub.parse::<i32>().unwrap(),
-        form.user_id
-    ).execute(&state.db).await;
-
-    match (delete_request) {
-        (Ok(_)) => {
+    match delete_friend_request(user_id, form.user_id, &state.db).await {
+        Ok(_) => {
             (StatusCode::OK, Json(json!({"message": "Friend request canceled"})))
         },
-        _ => {
+        Err(_)=> {
             (StatusCode::INTERNAL_SERVER_ERROR, 
              Json(json!({"message": "Failed to cancel friend request"})))
         }
@@ -352,12 +225,12 @@ async fn cancel_friend_request(
 
 async fn deny_friend_request(
     State(state): State<Arc<ServerState>>,
-    Form(form): Form<DenyFriendRequestForm>,
+    Form(form): Form<FriendForm>,
 ) -> impl IntoResponse {
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
     // Validate the token.
-    let claims = match validate_token(&form.token, jwt_key).await {
-        Ok(claims) => claims,
+    let user_id = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
         Err(_) => {
             return (
                 StatusCode::UNAUTHORIZED,
@@ -366,17 +239,7 @@ async fn deny_friend_request(
         }
     };
 
-    let deny_request = sqlx::query!(
-        r#"
-        DELETE
-        FROM friend_requests 
-        WHERE sender_id = $1 AND receiver_id = $2
-        "#,
-        form.user_id,
-        claims.sub.parse::<i32>().unwrap()
-    ).execute(&state.db).await;
-
-    match deny_request {
+    match delete_friend_request(form.user_id, user_id, &state.db).await {
         Ok(_) => {
             (StatusCode::OK, Json(json!({"message": "Friend request denied"})))
         },
@@ -391,12 +254,12 @@ async fn deny_friend_request(
 
 async fn remove_friendship(    
     State(state): State<Arc<ServerState>>,
-    Form(form): Form<RemoveFriendForm>
+    Form(form): Form<FriendForm>
 ) -> impl IntoResponse  {
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
     // Validate the token.
-    let claims = match validate_token(&form.token, jwt_key).await {
-        Ok(claims) => claims,
+    let user_id = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
         Err(_) => {
             return (
                 StatusCode::UNAUTHORIZED,
@@ -405,25 +268,8 @@ async fn remove_friendship(
         }
     };
 
-    let remove_friendship = sqlx::query!(
-        r#"
-        DELETE
-        FROM friendships 
-        WHERE user_id = $1 AND friend_id = $2
-        "#, 
-        claims.sub.parse::<i32>().unwrap(),
-        form.user_id
-    ).execute(&state.db).await;
-
-    let remove_reverse_friendship = sqlx::query!(
-        r#"
-        DELETE 
-        FROM friendships
-        WHERE user_id = $1 AND friend_id = $2
-        "#, 
-        form.user_id,
-        claims.sub.parse::<i32>().unwrap(),
-    ).execute(&state.db).await;
+    let remove_friendship = delete_friendship(user_id, form.user_id, &state.db).await;
+    let remove_reverse_friendship = delete_friendship(form.user_id, user_id, &state.db).await;
 
     match(remove_friendship, remove_reverse_friendship) {
         (Ok(_), Ok(_)) => {
