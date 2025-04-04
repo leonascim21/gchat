@@ -1,46 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
-use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post, put}, Extension, Form, Json, Router};
-use gauth::{validate_token, Auth};
-use serde::Deserialize;
+use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post, put}, Form, Json, Router};
+use gauth::validate_token;
 use serde_json::json;
 
-use crate::state::ServerState;
+use crate::{state::ServerState, utils::queries::{change_group_picture, is_user_in_group, remove_group_member}};
+use crate::utils::types::{CreateGroupForm, AddUsersForm, RemoveUserForm, EditPictureForm};
+use crate::utils::queries::{fetch_group_members, fetch_groups_for_user, add_group_member, create_group};
 
-#[derive(Deserialize)]
-struct CreateGroupForm {
-    token: String,
-    #[serde(rename = "groupName")]
-    group_name: String,
-    #[serde(rename = "memberIds")]
-    member_ids: Vec<i32>,
-}
 
-#[derive(Deserialize)]
-struct AddUsersForm {
-    token: String,
-    #[serde(rename = "groupId")]
-    group_id: i32,
-    #[serde(rename = "newMemberIds")]
-    new_member_ids: Vec<i32>,
-}
-
-#[derive(Deserialize)]
-struct RemoveUserForm {
-    token: String,
-    #[serde(rename = "groupId")]
-    group_id: i32,
-    #[serde(rename = "removeId")]
-    remove_id: i32,
-}
-
-#[derive(Deserialize)]
-struct EditPictureForm {
-    token: String,
-    #[serde(rename = "groupId")]
-    group_id: i32,
-    #[serde(rename = "pictureUrl")]
-    picture_url: String,
-}
 
 pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
@@ -54,7 +21,6 @@ pub fn router() -> Router<Arc<ServerState>> {
 
 
 async fn create_group_chat(
-    Extension(auth): Extension<Arc<Auth>>,
     State(state): State<Arc<ServerState>>,
     extract::Json(form): extract::Json<CreateGroupForm>
 ) -> impl IntoResponse {
@@ -69,18 +35,9 @@ async fn create_group_chat(
             );
         }
     };
-
-    let group = sqlx::query!(
-        r#"
-        INSERT INTO groups (name)
-        VALUES ($1)
-        RETURNING id
-        "#,
-        form.group_name
-    ).fetch_one(&state.db).await;
     
-    let group = match group {
-        Ok(group) => group,
+    let group_id = match create_group(form.group_name, &state.db).await {
+        Ok(group_id) => group_id,
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -94,18 +51,7 @@ async fn create_group_chat(
     member_ids.push(claims.sub.parse::<i32>().unwrap());
     
     for member_id in member_ids {
-        let result = sqlx::query!(
-            r#"
-            INSERT INTO group_members (group_id, user_id)
-            VALUES ($1, $2)
-            "#,
-            group.id,
-            member_id
-        )
-        .execute(&state.db)
-        .await;
-
-        match result {
+        match add_group_member(member_id, group_id, &state.db).await {
             Ok(_) => {}
             Err(_) => {
                 return (
@@ -115,7 +61,7 @@ async fn create_group_chat(
             }
         }
     }
-    (StatusCode::OK, Json(json!({"message": "Group Created", "group_id": group.id})))
+    (StatusCode::OK, Json(json!({"message": "Group Created", "group_id": group_id})))
 
 }
 
@@ -137,18 +83,7 @@ async fn get_groups(
         }
     };
 
-    let groups = sqlx::query!(
-        r#"
-        SELECT *
-        FROM groups g
-        JOIN group_members gm ON g.id = gm.group_id
-        WHERE gm.user_id = $1
-        "#,
-        user_id 
-    )
-  .fetch_all(&state.db)
-  .await;
-    match groups {
+    match fetch_groups_for_user(user_id, &state.db).await {
         Ok(groups) => {
             let groups_data = groups.iter().map(|g| {
                 json!({
@@ -186,20 +121,10 @@ async fn get_users_in_group(
         None => {
             return (StatusCode::BAD_REQUEST, Json(json!({ "error": "Missing group_id" }))).into_response()
         }
-        Some(group_id) => group_id,
+        Some(group_id) => group_id.parse::<i32>().unwrap(),
     };
-    let group_id = group_id.parse::<i32>().unwrap();
-    let users = sqlx::query!(
-        r#"
-        SELECT *
-        FROM users u
-        JOIN group_members gm ON u.id = gm.user_id
-        WHERE gm.group_id = $1
-        "#,
-        group_id
-    ).fetch_all(&state.db).await;
 
-    match users {
+    match fetch_group_members(group_id, &state.db).await {
         Ok(users) => {
             let users_data = users.iter().map(|u| {
                 json!({
@@ -230,7 +155,6 @@ async fn get_users_in_group(
 
 
 async fn add_users_to_group(
-    Extension(auth): Extension<Arc<Auth>>,
     State(state): State<Arc<ServerState>>,
     extract::Json(form): extract::Json<AddUsersForm>
 ) -> impl IntoResponse {
@@ -242,54 +166,15 @@ async fn add_users_to_group(
         }
     };
 
-    let users = sqlx::query!(
-        r#"
-        SELECT *
-        FROM users u
-        JOIN group_members gm ON u.id = gm.user_id
-        WHERE gm.group_id = $1
-        "#,
-        form.group_id
-    ).fetch_all(&state.db).await;
-
-    match users {
-        Ok(users) => {
-            let users_data = users.iter().map(|u| {
-                json!({
-                    "username": u.username,
-                    "profile_picture": u.profile_picture,
-                    "id": u.id,
-                })
-            }).collect::<Vec<_>>();
-
-            let mut user_in_group = false;
-            for user in users_data.iter() {
-                if user["id"] == user_id {
-                    user_in_group = true;
-                    break;
-                }
-            }
-            if !user_in_group {
-                return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "User not in group" }))).into_response()
-            }
-        }
+    match is_user_in_group(user_id, form.group_id, &state.db).await {
+        Ok(_) => {}
         Err(_) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch users" }))).into_response()
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Unauthorized" }))).into_response()
         }
     };
 
     for member_id in form.new_member_ids {
-        let result = sqlx::query!(
-            r#"
-            INSERT INTO group_members (group_id, user_id)
-            VALUES ($1, $2)
-            "#,
-            form.group_id,
-            member_id
-        )
-       .execute(&state.db)
-       .await;
-        match result {
+        match add_group_member(member_id, form.group_id, &state.db).await {
             Ok(_) => {}
             Err(_) => {
                 return (
@@ -306,7 +191,6 @@ async fn add_users_to_group(
 
 
 async fn remove_user_from_group(
-    Extension(auth): Extension<Arc<Auth>>,
     State(state): State<Arc<ServerState>>,
     Form(form): Form<RemoveUserForm>,
 ) -> impl IntoResponse {
@@ -318,68 +202,26 @@ async fn remove_user_from_group(
         }
     };
 
-    let users = sqlx::query!(
-        r#"
-        SELECT *
-        FROM users u
-        JOIN group_members gm ON u.id = gm.user_id
-        WHERE gm.group_id = $1
-        "#,
-        form.group_id
-    ).fetch_all(&state.db).await;
-
-    match users {
-        Ok(users) => {
-            let users_data = users.iter().map(|u| {
-                json!({
-                    "username": u.username,
-                    "profile_picture": u.profile_picture,
-                    "id": u.id,
-                })
-            }).collect::<Vec<_>>();
-
-            let mut user_in_group = false;
-            for user in users_data.iter() {
-                if user["id"] == user_id {
-                    user_in_group = true;
-                    break;
-                }
-            }
-            if !user_in_group {
-                return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "User not in group" }))).into_response()
-            }
-        }
+    match is_user_in_group(user_id, form.group_id, &state.db).await {
+        Ok(_) => {}
         Err(_) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch users" }))).into_response()
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Unauthorized" }))).into_response()
         }
     };
 
-
-        let result = sqlx::query!(
-            r#"
-            DELETE
-            FROM group_members
-            WHERE group_id = $1 AND user_id = $2
-            "#,
-            form.group_id,
-            form.remove_id
-        )
-       .execute(&state.db)
-       .await;
-        match result {
-            Ok(_) => {
-                return (StatusCode::OK, Json(json!({"message": "User Removed"}))).into_response();
-            }
-            Err(_) => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"message": "Failed to remove user"}))).into_response();
-            }
+    match remove_group_member(form.remove_id, form.group_id, &state.db).await {
+        Ok(_) => {
+            return (StatusCode::OK, Json(json!({"message": "User Removed"}))).into_response();
         }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to remove user"}))).into_response();
+        }
+    }
 }
 
 async fn edit_group_picture(
-    Extension(auth): Extension<Arc<Auth>>,
     State(state): State<Arc<ServerState>>,
     Form(form): Form<EditPictureForm>,
 ) -> impl IntoResponse {
@@ -391,63 +233,22 @@ async fn edit_group_picture(
         }
     };
 
-    let users = sqlx::query!(
-        r#"
-        SELECT *
-        FROM users u
-        JOIN group_members gm ON u.id = gm.user_id
-        WHERE gm.group_id = $1
-        "#,
-        form.group_id
-    ).fetch_all(&state.db).await;
-
-    match users {
-        Ok(users) => {
-            let users_data = users.iter().map(|u| {
-                json!({
-                    "username": u.username,
-                    "profile_picture": u.profile_picture,
-                    "id": u.id,
-                })
-            }).collect::<Vec<_>>();
-
-            let mut user_in_group = false;
-            for user in users_data.iter() {
-                if user["id"] == user_id {
-                    user_in_group = true;
-                    break;
-                }
-            }
-            if !user_in_group {
-                return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "User not in group" }))).into_response()
-            }
-        }
+    match is_user_in_group(user_id, form.group_id, &state.db).await {
+        Ok(_) => {}
         Err(_) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch users" }))).into_response()
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Unauthorized" }))).into_response()
         }
     };
 
-
-        let result = sqlx::query!(
-            r#"
-            UPDATE groups
-            SET profile_picture = $1
-            WHERE id = $2
-            "#,
-            form.picture_url,
-            form.group_id
-        )
-       .execute(&state.db)
-       .await;
-        match result {
-            Ok(_) => {
-                return (StatusCode::OK, Json(json!({"message": "Picture Updated"}))).into_response();
-            }
-            Err(_) => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"message": "Failed to update picture"}))).into_response();
-            }
+    match change_group_picture(form.group_id, form.picture_url, &state.db).await {
+        Ok(_) => {
+            return (StatusCode::OK, Json(json!({"message": "Picture Updated"}))).into_response();
         }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to update picture"}))).into_response();
+        }
+    }
 }
 
