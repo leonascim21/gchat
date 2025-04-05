@@ -64,7 +64,7 @@ export default function Home() {
 
       try {
         const tokenCheckResponse = await axios.get(
-          `https://api.gchat.cloud/check-token?token=${token}`
+          `https://api.gchat.cloud/user/check-token?token=${token}`
         );
 
         if (!tokenCheckResponse.data.valid) {

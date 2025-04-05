@@ -61,7 +61,7 @@ export default function SignUpModal({ showSignIn, successfullSignUp }: Props) {
         };
         const payload = qs.stringify(data);
         const response = await axios.post(
-          "https://api.gchat.cloud/register",
+          "https://api.gchat.cloud/user/register",
           payload
         );
         console.log("Registration successful");

@@ -5,10 +5,10 @@ mod utils;
 use axum::extract::ws::WebSocket;
 use axum::http::header;
 use axum::http::{HeaderValue, Method};
-use axum::extract::{Form, Path};
+use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::response::Html;
-use axum::routing::{get, post};
+use axum::routing::get;
 use axum::Extension;
 use axum::{
     extract::{ws::Message, Query, State, WebSocketUpgrade},
@@ -19,9 +19,8 @@ use axum::{
 
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
-use gauth::models::{Auth, Claims, User};
+use gauth::models::Auth;
 use gauth::validate_token;
-use routes::group;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use state::ServerState;
@@ -30,13 +29,11 @@ use uuid::Uuid;
 use std::sync::Arc;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::time::SystemTime;
 
 use tokio::net::TcpListener;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{mpsc, Mutex};
 
 use tower_http::cors::CorsLayer;
-use utils::types::{LoginForm, RegisterForm};
 use utils::queries::is_user_in_group;
 
 #[tokio::main]
@@ -93,17 +90,6 @@ async fn main() {
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
         .route("/ws/group/:group_id", get(ws_handler))
-        .route(
-            "/login",
-            get(|| async { Html(include_str!("../templates/login.html")) }),
-        )
-        .route("/login", post(handle_login))
-        .route("/register", post(handle_registration))
-        .route("/check-token", get(check_token))
-        .route("/get-user-info", get(get_user_info))
-        //.nofollow.route("/api/validate-token", get(validate_token_handler))
-        //.route("/api/me", get(get_user_info))
-        .route("/api/logout", post(handle_logout))
         .nest("/", routes::app_routes().with_state(state.clone()))
         .layer(cors)
         .layer(Extension(auth))
@@ -115,128 +101,6 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn check_token(
-    Extension(auth): Extension<Arc<Auth>>,
-    Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
-    let token = params.get("token");
-    if token.is_none() {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Missing token" })),
-        )
-           .into_response();
-    }
-    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
-    match validate_token(token.unwrap(), jwt_key).await {
-        Ok(_) => (StatusCode::OK, Json(json!({ "valid": true }))).into_response(),
-        Err(_) => (StatusCode::OK, Json(json!({ "valid": false }))).into_response(),
-    }
-}
-
-
-async fn handle_registration(
-    Extension(auth): Extension<Arc<Auth>>,
-    Form(form): Form<RegisterForm>,
-) -> impl IntoResponse {
-    // Validate passwords match
-    if form.password != form.confirm_password {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            "Passwords do not match".to_string(),
-        ));
-    }
-
-    // Create a new user
-    let user = User {
-        id: None,
-        username: form.username,
-        email: Some(form.email),
-        profile_picture: form.profile_picture,
-        password: form.password, // Note: You should hash this password
-        created_at: None,
-    };
-
-    // Register the user
-    match auth.register_user(user).await {
-        Ok(new_user) =>  {
-
-            let user_id = new_user
-                .id
-                .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, "No user ID".into()))?;
-
-            let claims = Claims {
-                sub: user_id.to_string(),
-                exp: (SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-                    + (60 * 60 * 24 * 7)),
-            };
-
-            let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
-            let token = jsonwebtoken::encode(
-                &jsonwebtoken::Header::default(),
-                &claims,
-                &jsonwebtoken::EncodingKey::from_secret(jwt_key.as_bytes()),
-            )
-            .unwrap();
-
-            // Return JSON with token
-            Ok(Json(json!({ "token": token })))
-        }
-        Err(_) => Err((
-            StatusCode::BAD_REQUEST,
-            "Username or email already exists".to_string(),
-        )),
-    }
-}
-
-async fn handle_login(
-    Extension(auth): Extension<Arc<Auth>>,
-    Form(form): Form<LoginForm>,
-) -> impl IntoResponse {
-    let user = User {
-        id: None,
-        username: form.username,
-        email: None,
-        profile_picture: None,
-        password: form.password,
-        created_at: None,
-    };
-
-    match auth.user_login(user).await {
-        Ok(Some(user)) => {
-            let claims = Claims {
-                sub: user.id.unwrap().to_string(),
-                exp: (SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-                    + (60 * 60 * 24 * 7)),
-            };
-
-            let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
-            let token = jsonwebtoken::encode(
-                &jsonwebtoken::Header::default(),
-                &claims,
-                &jsonwebtoken::EncodingKey::from_secret(jwt_key.as_bytes()),
-            )
-            .unwrap();
-
-            // Return JSON with token
-            Ok(Json(json!({ "token": token })))
-        }
-        Ok(None) => Err((
-            StatusCode::UNAUTHORIZED,
-            "No user with these credentials exists".to_string(),
-        )),
-        Err(_) => Err((
-            StatusCode::BAD_REQUEST,
-            "Username or password wrong".to_string(),
-        )),
-    }
-}
 
 async fn ws_handler(
     ws: WebSocketUpgrade,
@@ -400,54 +264,3 @@ async fn broadcast_message(
         }
     }
 }
-
-async fn get_user_info(
-    Extension(auth): Extension<Arc<Auth>>,
-    Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
-    let token = params.get("token");
-
-    if token.is_none() {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Missing token" })),
-        )
-            .into_response();
-    }
-
-    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
-
-    match validate_token(token.unwrap(), jwt_key).await {
-        Ok(claims) => {
-            // Get user details from DB using the user ID in the token
-            match auth.get_user_by_id(claims.sub.parse::<i32>().unwrap()).await {
-                Ok(Some(user)) => {
-                    // Don't include password in response
-                    (
-                        StatusCode::OK,
-                        Json(json!({
-                            "id": user.id,
-                            "username": user.username,
-                            "email": user.email,
-                            "profile_picture": user.profile_picture
-                        })),
-                    )
-                        .into_response()
-                }
-                _ => (
-                    StatusCode::NOT_FOUND,
-                    Json(json!({ "error": "User not found" })),
-                )
-                    .into_response(),
-            }
-        }
-        Err(_) => (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Invalid token" })),
-        )
-            .into_response(),
-    }
-}
-
-async fn handle_logout() {}
-

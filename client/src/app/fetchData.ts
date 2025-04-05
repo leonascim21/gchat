@@ -56,7 +56,9 @@ export async function fetchAll() {
   try {
     const [userResponse, groupsResponse, friendsResponse, requestsResponse] =
       await Promise.all([
-        axios.get<User>(`https://api.gchat.cloud/get-user-info?token=${token}`),
+        axios.get<User>(
+          `https://api.gchat.cloud/user/get-user-info?token=${token}`
+        ),
         axios.get<Group[]>(`https://api.gchat.cloud/group/get?token=${token}`),
         axios.get<Friend[]>(
           `https://api.gchat.cloud/friend/get?token=${token}`
