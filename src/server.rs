@@ -98,7 +98,6 @@ async fn main() {
             get(|| async { Html(include_str!("../templates/login.html")) }),
         )
         .route("/login", post(handle_login))
-        .route("/get-group-messages", get(get_group_messages))
         .route("/register", post(handle_registration))
         .route("/check-token", get(check_token))
         .route("/get-user-info", get(get_user_info))
@@ -115,96 +114,6 @@ async fn main() {
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
-
-async fn get_group_messages(
-    State(state): State<Arc<ServerState>>,
-    Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
-    let token = params.get("token");
-    if token.is_none() {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "Missing token" })),
-        )
-            .into_response();
-    }
-
-    let group_id = params.get("group_id");
-    if group_id.is_none() {
-
-    }
-    let group_id = match group_id {
-        Some(group_id) => group_id.parse::<i32>().unwrap(),
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED, Json(json!({ "error": "Missing group id" })),
-            ).into_response();
-        }
-    };
-    
-
-
-    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
-    let user_id = match validate_token(token.unwrap(), jwt_key).await {
-        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
-        Err(_) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({ "error": "Invalid token" })),
-            )
-            .into_response()
-        }
-    };
-
-    match is_user_in_group(user_id, group_id, &state.db).await {
-        Ok(_) => {},
-        Err(_) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({ "error": "Invalid token" })),
-            )
-            .into_response()
-        }
-    }
-
-    let result = sqlx::query!(
-        r#"
-        SELECT m.id, m.content, m.user_id, m.timestamp, u.username, u.profile_picture 
-        FROM messages m
-        JOIN users u ON m.user_id = u.id
-        WHERE m.group_id = $1
-        ORDER BY m.timestamp
-        "#,
-        group_id
-    )
-    .fetch_all(&state.db)
-    .await;
-    
-    match result {
-        Ok(messages) => {
-            let message_data = messages.iter().map(|m| {
-                json!({
-                    "id": m.id,
-                    "content": m.content,
-                    "user_id": m.user_id,
-                    "username": m.username,
-                    "timestamp": m.timestamp.to_rfc3339(),
-                    "profile_picture": m.profile_picture
-                })
-            }).collect::<Vec<_>>();
-            
-            (StatusCode::OK, Json(message_data)).into_response()
-        },
-        Err(err) => {
-            eprintln!("Database error: {}", err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Failed to fetch messages" })),
-            ).into_response()
-        }
-    }
-}
-
 
 async fn check_token(
     Extension(auth): Extension<Arc<Auth>>,

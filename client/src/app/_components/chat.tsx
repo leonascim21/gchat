@@ -31,7 +31,7 @@ export default function Chat({ user, updatePing, groupId }: Props) {
 
     axios
       .get(
-        `https://api.gchat.cloud/get-group-messages?token=${token}&group_id=${groupId}`
+        `https://api.gchat.cloud/group/get-messages?token=${token}&group_id=${groupId}`
       )
       .then((response) => {
         setMessages(response.data);
