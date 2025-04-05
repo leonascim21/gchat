@@ -33,7 +33,7 @@ import AuthModals from "./_components/authModals";
 import GroupManagementModal from "./_components/groupManagementModal";
 import { fetchAll } from "./fetchData";
 import type { User, Message, Group, Friend, FriendRequest } from "./fetchData";
-import TestChat from "./_components/testChat";
+import Chat from "./_components/chat";
 
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
@@ -44,7 +44,6 @@ export default function Home() {
 
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>([]);
@@ -83,7 +82,6 @@ export default function Home() {
         console.log("Data fetched successfully:");
 
         setUser(fetchedData.user);
-        setMessages(fetchedData.messages);
         setGroups(fetchedData.groups);
         setFriends(fetchedData.friends);
         setIncomingFriends(fetchedData.incomingFriends);
@@ -159,7 +157,6 @@ export default function Home() {
     setIsAuth(false);
 
     setUser(null);
-    setMessages([]);
     setGroups([]);
     setFriends([]);
     setIncomingFriends([]);
@@ -287,17 +284,13 @@ export default function Home() {
             </div>
             <h1 className="font-semibold ">
               {selectedChat ? (
-                selectedChat == -1 ? (
-                  "Test Chat"
-                ) : (
-                  <GroupManagementModal
-                    group={groups.find((group) => group.id === selectedChat)!}
-                    friends={friends}
-                    removeGroupMember={removeGroupMember}
-                    addGroupMember={addGroupMember}
-                    editGroupPicture={editGroupPicture}
-                  />
-                )
+                <GroupManagementModal
+                  group={groups.find((group) => group.id === selectedChat)!}
+                  friends={friends}
+                  removeGroupMember={removeGroupMember}
+                  addGroupMember={addGroupMember}
+                  editGroupPicture={editGroupPicture}
+                />
               ) : (
                 "Select a chat"
               )}
@@ -320,13 +313,12 @@ export default function Home() {
                 </p>
               </Card>
             </div>
-          ) : selectedChat !== -1 ? (
-            <div></div>
           ) : (
-            <TestChat
+            <Chat
               user={user}
-              initialMessages={messages}
               updatePing={(isConnected) => setConnected(isConnected)}
+              groupId={selectedChat}
+              key={selectedChat}
             />
           )}
         </SidebarInset>

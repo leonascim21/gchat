@@ -6,15 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import axios from "axios";
 interface Props {
-  initialMessages: Message[];
+  groupId: number;
   user: User | null;
   updatePing: (isConnected: boolean) => void;
 }
 
-export default function TestChat({ initialMessages, user, updatePing }: Props) {
+export default function Chat({ user, updatePing, groupId }: Props) {
   const [connected, setConnected] = useState(false);
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -22,6 +24,21 @@ export default function TestChat({ initialMessages, user, updatePing }: Props) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    axios
+      .get(
+        `https://api.gchat.cloud/get-group-messages?token=${token}&group_id=${groupId}`
+      )
+      .then((response) => {
+        setMessages(response.data);
+      })
+      .catch((error) => console.log(error))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const sendMessage = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,7 +57,9 @@ export default function TestChat({ initialMessages, user, updatePing }: Props) {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const ws = new WebSocket(`wss://ws.gchat.cloud/ws?token=${token}`);
+    const ws = new WebSocket(
+      `wss://ws.gchat.cloud/ws/group/${groupId}?token=${token}`
+    );
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -73,6 +92,14 @@ export default function TestChat({ initialMessages, user, updatePing }: Props) {
 
   if (user === null) {
     return null;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return (

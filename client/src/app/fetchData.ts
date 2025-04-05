@@ -46,7 +46,6 @@ export async function fetchAll() {
     console.error("No token found");
     return {
       user: null,
-      messages: [],
       groups: [],
       friends: [],
       incomingFriends: [],
@@ -55,25 +54,18 @@ export async function fetchAll() {
   }
 
   try {
-    const [
-      messagesResponse,
-      userResponse,
-      groupsResponse,
-      friendsResponse,
-      requestsResponse,
-    ] = await Promise.all([
-      axios.get<Message[]>(
-        `https://api.gchat.cloud/get-all-messages?token=${token}`
-      ),
-      axios.get<User>(`https://api.gchat.cloud/get-user-info?token=${token}`),
-      axios.get<Group[]>(`https://api.gchat.cloud/group/get?token=${token}`),
-      axios.get<Friend[]>(`https://api.gchat.cloud/friend/get?token=${token}`),
-      axios.get<FriendRequestResponse>(
-        `https://api.gchat.cloud/friend/get-requests?token=${token}`
-      ),
-    ]);
+    const [userResponse, groupsResponse, friendsResponse, requestsResponse] =
+      await Promise.all([
+        axios.get<User>(`https://api.gchat.cloud/get-user-info?token=${token}`),
+        axios.get<Group[]>(`https://api.gchat.cloud/group/get?token=${token}`),
+        axios.get<Friend[]>(
+          `https://api.gchat.cloud/friend/get?token=${token}`
+        ),
+        axios.get<FriendRequestResponse>(
+          `https://api.gchat.cloud/friend/get-requests?token=${token}`
+        ),
+      ]);
 
-    const messages: Message[] = messagesResponse.data;
     const user: User | null = userResponse.data;
     let groups: Group[] = groupsResponse.data;
     const friends: Friend[] = friendsResponse.data;
@@ -91,14 +83,8 @@ export async function fetchAll() {
       }
     }
 
-    groups = [
-      { id: -1, name: "Test Chat", profile_picture: "", members: [] },
-      ...groups,
-    ];
-
     return {
       user,
-      messages,
       groups,
       friends,
       incomingFriends,
@@ -108,7 +94,6 @@ export async function fetchAll() {
     console.error("Error fetching data:", error);
     return {
       user: null,
-      messages: [],
       groups: [],
       friends: [],
       incomingFriends: [],
