@@ -1,8 +1,18 @@
 use serde::Deserialize;
+use chrono::{DateTime, Utc};
 
 pub struct Group {
     pub id: i32,
     pub name: String,
+    pub profile_picture: Option<String>,
+}
+
+pub struct Message {
+    pub id: i32,
+    pub content: String,
+    pub user_id: i32,
+    pub username: String,
+    pub timestamp: DateTime<Utc>,
     pub profile_picture: Option<String>,
 }
 

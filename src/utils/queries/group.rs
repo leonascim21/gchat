@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use crate::utils::types::{Group, Friend};
+use crate::utils::types::{Group, Friend, Message};
 
 pub async fn fetch_groups_for_user(user_id: i32, db: &PgPool) -> Result<Vec<Group>, sqlx::Error> {
     sqlx::query_as!(
@@ -96,4 +96,19 @@ pub async fn change_group_picture(group_id: i32, picture_url: String, db: &PgPoo
     .execute(db)
     .await?;
     Ok(())
+}
+
+pub async fn fetch_messages(group_id: i32, db: &PgPool) -> Result<Vec<Message>, sqlx::Error> {
+    sqlx::query_as!(
+        Message,
+        r#"
+        SELECT m.id, m.content, m.user_id, m.timestamp, u.username, u.profile_picture 
+        FROM messages m
+        JOIN users u ON m.user_id = u.id
+        WHERE m.group_id = $1
+        ORDER BY m.timestamp
+        "#,
+        group_id
+    )
+    .fetch_all(db).await
 }

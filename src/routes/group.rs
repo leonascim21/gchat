@@ -3,7 +3,7 @@ use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoRespon
 use gauth::validate_token;
 use serde_json::json;
 
-use crate::{state::ServerState, utils::queries::{change_group_picture, is_user_in_group, remove_group_member}};
+use crate::{state::ServerState, utils::queries::{change_group_picture, fetch_messages, is_user_in_group, remove_group_member}};
 use crate::utils::types::{CreateGroupForm, AddUsersForm, RemoveUserForm, EditPictureForm};
 use crate::utils::queries::{fetch_group_members, fetch_groups_for_user, add_group_member, create_group};
 
@@ -278,8 +278,6 @@ async fn get_group_messages(
             ).into_response();
         }
     };
-    
-
 
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
     let user_id = match validate_token(token.unwrap(), jwt_key).await {
@@ -304,20 +302,7 @@ async fn get_group_messages(
         }
     }
 
-    let result = sqlx::query!(
-        r#"
-        SELECT m.id, m.content, m.user_id, m.timestamp, u.username, u.profile_picture 
-        FROM messages m
-        JOIN users u ON m.user_id = u.id
-        WHERE m.group_id = $1
-        ORDER BY m.timestamp
-        "#,
-        group_id
-    )
-    .fetch_all(&state.db)
-    .await;
-    
-    match result {
+    match fetch_messages(group_id, &state.db).await {
         Ok(messages) => {
             let message_data = messages.iter().map(|m| {
                 json!({
