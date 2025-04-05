@@ -32,7 +32,7 @@ import axios from "axios";
 import AuthModals from "./_components/authModals";
 import GroupManagementModal from "./_components/groupManagementModal";
 import { fetchAll } from "./fetchData";
-import type { User, Message, Group, Friend, FriendRequest } from "./fetchData";
+import type { User, Group, Friend, FriendRequest } from "./fetchData";
 import Chat from "./_components/chat";
 
 export default function Home() {

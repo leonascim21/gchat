@@ -67,7 +67,7 @@ export async function fetchAll() {
       ]);
 
     const user: User | null = userResponse.data;
-    let groups: Group[] = groupsResponse.data;
+    const groups: Group[] = groupsResponse.data;
     const friends: Friend[] = friendsResponse.data;
     const incomingFriends: FriendRequest[] = requestsResponse.data.incoming;
     const outgoingFriends: FriendRequest[] = requestsResponse.data.outgoing;
