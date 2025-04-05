@@ -7,7 +7,6 @@ use axum::http::header;
 use axum::http::{HeaderValue, Method};
 use axum::extract::Path;
 use axum::http::StatusCode;
-use axum::response::Html;
 use axum::routing::get;
 use axum::Extension;
 use axum::{
@@ -34,7 +33,7 @@ use tokio::net::TcpListener;
 use tokio::sync::{mpsc, Mutex};
 
 use tower_http::cors::CorsLayer;
-use utils::queries::is_user_in_group;
+use utils::queries::{insert_message_in_db, is_user_in_group};
 
 #[tokio::main]
 async fn main() {
@@ -163,34 +162,14 @@ async fn handle_socket(socket: WebSocket, user_id: i32, state: std::sync::Arc<Se
 
     let state_clone = state.clone();
     // Task to handle messages from this client
-    let mut recv_task = tokio::spawn(async move {
+    let recv_task = tokio::spawn(async move {
         while let Some(result) = receiver.next().await {
             match result {
                 Ok(msg) => {
                     match msg {
-                        Message::Text(text_content) => {
-
-                            // Store in database and return inserted record + username
-                            let result = sqlx::query!(
-                                r#"
-                                WITH inserted AS (
-                                  INSERT INTO messages (user_id, content, group_id)
-                                  VALUES ($1, $2, $3)
-                                  RETURNING id, user_id, content, timestamp, group_id
-                                )
-                                SELECT i.id, i.user_id, i.content, i.timestamp, i.group_id, u.username, u.profile_picture
-                                FROM inserted i
-                                JOIN users u ON i.user_id = u.id;
-                                "#,
-                                user_id,
-                                text_content,
-                                group_id
-                            )
-                            .fetch_one(&state_clone.db)
-                            .await;
-                            
+                        Message::Text(text_content) => {    
                             // convert result to json and send to all clients
-                            match result {
+                            match insert_message_in_db(user_id, group_id, text_content, &state_clone.db).await {
                                 Ok(record) => {
                                     let message_json = json!({
                                         "id": record.id,

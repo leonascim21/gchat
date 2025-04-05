@@ -14,6 +14,7 @@ pub struct Message {
     pub username: String,
     pub timestamp: DateTime<Utc>,
     pub profile_picture: Option<String>,
+    pub group_id: i32,
 }
 
 

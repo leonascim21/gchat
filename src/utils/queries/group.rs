@@ -102,7 +102,7 @@ pub async fn fetch_messages(group_id: i32, db: &PgPool) -> Result<Vec<Message>, 
     sqlx::query_as!(
         Message,
         r#"
-        SELECT m.id, m.content, m.user_id, m.timestamp, u.username, u.profile_picture 
+        SELECT m.id, m.content, m.user_id, m.timestamp, m.group_id, u.username, u.profile_picture 
         FROM messages m
         JOIN users u ON m.user_id = u.id
         WHERE m.group_id = $1
@@ -111,4 +111,26 @@ pub async fn fetch_messages(group_id: i32, db: &PgPool) -> Result<Vec<Message>, 
         group_id
     )
     .fetch_all(db).await
+}
+
+pub async fn insert_message_in_db(user_id: i32, group_id:i32, content: String, db: &PgPool) 
+-> Result<Message, sqlx::Error> {
+    sqlx::query_as!(
+        Message,
+        r#"
+        WITH inserted AS (
+          INSERT INTO messages (user_id, content, group_id)
+          VALUES ($1, $2, $3)
+          RETURNING id, user_id, content, timestamp, group_id
+        )
+        SELECT i.id, i.user_id, i.content, i.timestamp, i.group_id, u.username, u.profile_picture
+        FROM inserted i
+        JOIN users u ON i.user_id = u.id;
+        "#,
+        user_id,
+        content,
+        group_id
+    )
+    .fetch_one(db)
+    .await
 }
