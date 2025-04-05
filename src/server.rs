@@ -21,6 +21,7 @@ use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use gauth::models::{Auth, Claims, User};
 use gauth::validate_token;
+use routes::group;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use state::ServerState;
@@ -36,6 +37,7 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 
 use tower_http::cors::CorsLayer;
 use utils::types::{LoginForm, RegisterForm};
+use utils::queries::is_user_in_group;
 
 #[tokio::main]
 async fn main() {
@@ -140,54 +142,65 @@ async fn get_group_messages(
         }
     };
     
-    //TODO: CHECK IF USER IS MEMEBR OF GROUP
+
 
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
-    match validate_token(token.unwrap(), jwt_key).await {
-        Ok(_) => {
-            let result = sqlx::query!(
-                r#"
-                SELECT m.id, m.content, m.user_id, m.timestamp, u.username, u.profile_picture 
-                FROM messages m
-                JOIN users u ON m.user_id = u.id
-                WHERE m.group_id = $1
-                ORDER BY m.timestamp
-                "#,
-                group_id
-            )
-            .fetch_all(&state.db)
-            .await;
-            
-            match result {
-                Ok(messages) => {
-                    let message_data = messages.iter().map(|m| {
-                        json!({
-                            "id": m.id,
-                            "content": m.content,
-                            "user_id": m.user_id,
-                            "username": m.username,
-                            "timestamp": m.timestamp.to_rfc3339(),
-                            "profile_picture": m.profile_picture
-                        })
-                    }).collect::<Vec<_>>();
-                    
-                    (StatusCode::OK, Json(message_data)).into_response()
-                },
-                Err(err) => {
-                    eprintln!("Database error: {}", err);
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({ "error": "Failed to fetch messages" })),
-                    ).into_response()
-                }
-            }
-        },
+    let user_id = match validate_token(token.unwrap(), jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
         Err(_) => {
-            (
+            return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({ "error": "Invalid token" })),
             )
             .into_response()
+        }
+    };
+
+    match is_user_in_group(user_id, group_id, &state.db).await {
+        Ok(_) => {},
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({ "error": "Invalid token" })),
+            )
+            .into_response()
+        }
+    }
+
+    let result = sqlx::query!(
+        r#"
+        SELECT m.id, m.content, m.user_id, m.timestamp, u.username, u.profile_picture 
+        FROM messages m
+        JOIN users u ON m.user_id = u.id
+        WHERE m.group_id = $1
+        ORDER BY m.timestamp
+        "#,
+        group_id
+    )
+    .fetch_all(&state.db)
+    .await;
+    
+    match result {
+        Ok(messages) => {
+            let message_data = messages.iter().map(|m| {
+                json!({
+                    "id": m.id,
+                    "content": m.content,
+                    "user_id": m.user_id,
+                    "username": m.username,
+                    "timestamp": m.timestamp.to_rfc3339(),
+                    "profile_picture": m.profile_picture
+                })
+            }).collect::<Vec<_>>();
+            
+            (StatusCode::OK, Json(message_data)).into_response()
+        },
+        Err(err) => {
+            eprintln!("Database error: {}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": "Failed to fetch messages" })),
+            ).into_response()
         }
     }
 }
