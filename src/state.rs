@@ -1,8 +1,16 @@
 use sqlx::PgPool;
-use tokio::sync::broadcast;
+use axum::extract::ws::Message;
+use std::{
+    collections::HashMap,
+    sync::Arc,
+};
+use tokio::sync::{mpsc, Mutex};
+use uuid::Uuid;
+
+pub type ChannelMap = HashMap<i32, HashMap<Uuid, mpsc::UnboundedSender<Message>>>;
 
 #[derive(Clone)]
 pub struct ServerState {
     pub db: PgPool,
-    pub tx: broadcast::Sender<String>,
+    pub channels: Arc<Mutex<ChannelMap>>
 }

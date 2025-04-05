@@ -5,7 +5,7 @@ mod utils;
 use axum::extract::ws::WebSocket;
 use axum::http::header;
 use axum::http::{HeaderValue, Method};
-use axum::extract::Form;
+use axum::extract::{Form, Path};
 use axum::http::StatusCode;
 use axum::response::Html;
 use axum::routing::{get, post};
@@ -24,6 +24,7 @@ use gauth::validate_token;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use state::ServerState;
+use uuid::Uuid;
 
 use std::sync::Arc;
 use std::collections::HashMap;
@@ -31,7 +32,7 @@ use std::net::SocketAddr;
 use std::time::SystemTime;
 
 use tokio::net::TcpListener;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, mpsc, Mutex};
 
 use tower_http::cors::CorsLayer;
 use utils::types::{LoginForm, RegisterForm};
@@ -54,12 +55,10 @@ async fn main() {
         .await
         .expect("Failed to create pool");
 
-    let (tx, mut _rx) = broadcast::channel::<String>(100);
-
     // Shared DB state
     let state = ServerState {
         db: pool,
-        tx: tx.clone(),
+        channels: Arc::new(Mutex::new(HashMap::new()))
     };
 
     let state = std::sync::Arc::new(state);
@@ -91,13 +90,13 @@ async fn main() {
 
     let app = Router::new()
         .route("/ping", get(|| async { "pong" }))
-        .route("/ws", get(ws_handler))
+        .route("/ws/group/:group_id", get(ws_handler))
         .route(
             "/login",
             get(|| async { Html(include_str!("../templates/login.html")) }),
         )
         .route("/login", post(handle_login))
-        .route("/get-all-messages", get(get_all_messages))
+        .route("/get-group-messages", get(get_group_messages))
         .route("/register", post(handle_registration))
         .route("/check-token", get(check_token))
         .route("/get-user-info", get(get_user_info))
@@ -109,13 +108,13 @@ async fn main() {
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn get_all_messages(
+async fn get_group_messages(
     State(state): State<Arc<ServerState>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
@@ -127,7 +126,22 @@ async fn get_all_messages(
         )
             .into_response();
     }
+
+    let group_id = params.get("group_id");
+    if group_id.is_none() {
+
+    }
+    let group_id = match group_id {
+        Some(group_id) => group_id.parse::<i32>().unwrap(),
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED, Json(json!({ "error": "Missing group id" })),
+            ).into_response();
+        }
+    };
     
+    //TODO: CHECK IF USER IS MEMEBR OF GROUP
+
     let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
     match validate_token(token.unwrap(), jwt_key).await {
         Ok(_) => {
@@ -136,8 +150,10 @@ async fn get_all_messages(
                 SELECT m.id, m.content, m.user_id, m.timestamp, u.username, u.profile_picture 
                 FROM messages m
                 JOIN users u ON m.user_id = u.id
+                WHERE m.group_id = $1
                 ORDER BY m.timestamp
-                "#
+                "#,
+                group_id
             )
             .fetch_all(&state.db)
             .await;
@@ -301,8 +317,9 @@ async fn handle_login(
 }
 
 async fn ws_handler(
-    State(state): State<Arc<ServerState>>,
     ws: WebSocketUpgrade,
+    State(state): State<Arc<ServerState>>,
+    Path(group_id): Path<i32>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let token = params.get("token").cloned();
@@ -316,78 +333,99 @@ async fn ws_handler(
 
     let token = token.unwrap();
 
-    match validate_token(&token, key).await {
-        Ok(claims) => ws.on_upgrade(move |socket| handle_socket(socket, claims.sub, state)),
+    let user_id = match validate_token(&token, key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
         Err(_) => return (StatusCode::UNAUTHORIZED, "Invalid token").into_response(),
-    }
-}
-
-async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc<ServerState>) {
-
-    //Parse user_id from jwt sub
-    let user_id: i32 = match user_id.parse() {
-        Ok(id) => id,
-        Err(e) => {
-            eprintln!("Failed to parse user id: {}", e);
-            return;
-        }
     };
 
+    //TODO: CHECK IF GROUP EXIST
+    //TODO: CHECK IF USER IS PART OF GROUP
+    ws.on_upgrade(move |socket: WebSocket| handle_socket(socket, user_id, state, group_id))
+
+}
+
+async fn handle_socket(socket: WebSocket, user_id: i32, state: std::sync::Arc<ServerState>, group_id: i32) {
+    let connection_id = Uuid::new_v4(); 
 
     let (mut sender, mut receiver) = socket.split();
-    let mut msg_rx = state.tx.subscribe();
+    let (mpsc_tx, mut mpsc_rx) = mpsc::unbounded_channel::<Message>();
+
+    {        
+        let mut channels = state.channels.lock().await;
+        let channel = channels.entry(group_id).or_default();
+        channel.insert(connection_id, mpsc_tx.clone());
+    }
 
     // Task to broadcast messages to this client
-    let mut send_task = tokio::spawn(async move {
-        while let Ok(msg) = msg_rx.recv().await {
-            sender.send(Message::Text(msg)).await;
+    let send_task = tokio::spawn(async move {
+        while let Some(msg) = mpsc_rx.recv().await {
+            if sender.send(msg).await.is_err() {
+                eprintln!("error trying to send message, connection_id: {}", connection_id);
+                break;
+            }
         }
     });
 
+    let state_clone = state.clone();
     // Task to handle messages from this client
     let mut recv_task = tokio::spawn(async move {
-        while let Some(Ok(msg)) = receiver.next().await {
-            // Check if this is a text message
-            if let Message::Text(text_content) = msg {
-                println!("[Broadcasting]: {}", text_content);
+        while let Some(result) = receiver.next().await {
+            match result {
+                Ok(msg) => {
+                    match msg {
+                        Message::Text(text_content) => {
 
-                // Store in database and return inserted record + username
-                let result = sqlx::query!(
-                    r#"
-                    WITH inserted AS (
-                      INSERT INTO messages (user_id, content)
-                      VALUES ($1, $2)
-                      RETURNING id, user_id, content, timestamp
-                    )
-                    SELECT i.id, i.user_id, i.content, i.timestamp, u.username, u.profile_picture
-                    FROM inserted i
-                    JOIN users u ON i.user_id = u.id;
-                    "#,
-                    user_id,
-                    text_content,
-                )
-                .fetch_one(&state.db)
-                .await;
-                
-                // convert result to json and send to all clients
-                match result {
-                    Ok(record) => {
-                        let message = json!({
-                            "id": record.id,
-                            "user_id": record.user_id,
-                            "content": record.content,
-                            "timestamp": record.timestamp.to_rfc3339(),
-                            "username": record.username,
-                            "profile_picture": record.profile_picture
-                        });
-                        
-                        if let Err(e) = state.tx.send(message.to_string()) {
-                            eprintln!("Failed to broadcast message: {}", e);
+                            // Store in database and return inserted record + username
+                            let result = sqlx::query!(
+                                r#"
+                                WITH inserted AS (
+                                  INSERT INTO messages (user_id, content, group_id)
+                                  VALUES ($1, $2, $3)
+                                  RETURNING id, user_id, content, timestamp, group_id
+                                )
+                                SELECT i.id, i.user_id, i.content, i.timestamp, i.group_id, u.username, u.profile_picture
+                                FROM inserted i
+                                JOIN users u ON i.user_id = u.id;
+                                "#,
+                                user_id,
+                                text_content,
+                                group_id
+                            )
+                            .fetch_one(&state_clone.db)
+                            .await;
+                            
+                            // convert result to json and send to all clients
+                            match result {
+                                Ok(record) => {
+                                    let message_json = json!({
+                                        "id": record.id,
+                                        "user_id": record.user_id,
+                                        "content": record.content,
+                                        "timestamp": record.timestamp.to_rfc3339(),
+                                        "username": record.username,
+                                        "profile_picture": record.profile_picture,
+                                        "group_id": record.group_id
+                                    });
+                                    
+                                    let broadcast_msg = Message::Text(message_json.to_string());
+
+                                    broadcast_message(
+                                        state_clone.clone(),
+                                        group_id,
+                                        broadcast_msg
+                                    ).await;
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to store message: {}", e);
+                                }
+                            }
                         }
-                    },
-                    Err(e) => {
-                        eprintln!("Failed to store message: {}", e);
+                        Message::Close(_) => {}
+                        _ =>{}
                     }
+                }
+                Err(e) => {
+                    eprintln!("Error receiving message, connection_id: {}, {:?}", connection_id, e)
                 }
             }
         }
@@ -395,11 +433,39 @@ async fn handle_socket(socket: WebSocket, user_id: String, state: std::sync::Arc
 
     // Wait for either task to complete
     tokio::select! {
-        _ = (&mut send_task) => {
-            recv_task.abort();
-        },
-        _ = (&mut recv_task) => {
-            send_task.abort();
+        _ = send_task => {},
+        _ = recv_task => {},
+    }
+
+    //clean up channles
+    {
+        let mut channels = state.channels.lock().await;
+        if let Some(channel) = channels.get_mut(&group_id) {
+            channel.remove(&connection_id);
+
+            if channel.is_empty() {
+                channels.remove(&group_id);
+            }
+        }
+    }
+}
+
+//helper function to broadcast messages
+async fn broadcast_message(
+    state: Arc<ServerState>,
+    group_id: i32,
+    msg: Message,
+) {
+    let channels = state.channels.lock().await;
+
+    if let Some(channel) = channels.get(&group_id) {
+        for (peer_connection_id, peer_tx) in channel.iter() {
+            if peer_tx.send(msg.clone()).is_err() {
+                eprintln!(
+                    "Failed to send message to {}",
+                    peer_connection_id
+                );
+            }
         }
     }
 }
