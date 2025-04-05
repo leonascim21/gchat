@@ -351,8 +351,17 @@ async fn ws_handler(
         Err(_) => return (StatusCode::UNAUTHORIZED, "Invalid token").into_response(),
     };
 
-    //TODO: CHECK IF GROUP EXIST
-    //TODO: CHECK IF USER IS PART OF GROUP
+    match is_user_in_group(user_id, group_id, &state.db).await {
+        Ok(_) => {},
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({ "error": "Unauthorized" })),
+            )
+            .into_response()
+        }
+    }
+
     ws.on_upgrade(move |socket: WebSocket| handle_socket(socket, user_id, state, group_id))
 
 }
