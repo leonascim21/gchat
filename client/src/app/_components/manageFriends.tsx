@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Check, MessageSquareShare, Plus, Users, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import axios from "axios";
 import qs from "qs";
 
@@ -70,6 +70,7 @@ export default function ManageFriends({
   const [friends, setFriends] = useState<Friend[]>(initialFriends);
   const [formMessage, setFormMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
 
   function addFriend(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -100,6 +101,9 @@ export default function ManageFriends({
       .then((response) => {
         setFormMessage(response.data.message);
         setOutgoingFriends([...outgoingFriends, response.data.friend_request]);
+        if (usernameInputRef.current) {
+          usernameInputRef.current.value = "";
+        }
       })
       .catch((error) => {
         setFormMessage(error.response.data.message);
@@ -283,6 +287,7 @@ export default function ManageFriends({
                             name="username"
                             placeholder="Friend's username"
                             className="w-full"
+                            ref={usernameInputRef}
                           />
                           <Button type="submit" disabled={isLoading}>
                             {isLoading ? "..." : <Plus />}
