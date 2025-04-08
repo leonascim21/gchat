@@ -96,6 +96,7 @@ export default function Home() {
 
   const addGroupChat = (newGroup: Group) => {
     setGroups((prev) => [...prev, newGroup]);
+    setSelectedChat(newGroup.id);
   };
 
   const addGroupMember = (memberIds: number[], groupId: number) => {

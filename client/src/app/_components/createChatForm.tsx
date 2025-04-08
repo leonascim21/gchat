@@ -50,6 +50,15 @@ interface Props {
 export default function CreateChatForm({ addGroupChat, friends }: Props) {
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openModal = () => {
+    setIsOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsOpen(false);
+  };
 
   const handleCheckboxChange = (friendId: number, checked: boolean) => {
     setSelectedMemberIds((prev) => {
@@ -92,6 +101,7 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
           profile_picture: "",
           members: [],
         });
+        closeModal();
       })
       .catch((error) => {
         console.error(error);
@@ -100,7 +110,7 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
   }
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -109,6 +119,7 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
                 <Button
                   variant="outline"
                   className="flex-1 gap-2 hover:bg-primary/10"
+                  onClick={openModal}
                 >
                   <PlusCircle className="h-4 w-4 text-primary" />
                   <span>New Chat</span>
