@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { LogOut, Menu, MessageSquare, Users } from "lucide-react";
+import { LogOut, Menu, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import Ping from "./_components/ping";
 import ThemeToggle from "./_components/theme-toggle";
