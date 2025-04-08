@@ -1,8 +1,34 @@
 # GChat API
 
+1.  [Overview](#overview)
+2.  [Base URL](#base-url)
+3.  [Authentication](#authentication)
+4.  [User Endpoints](#user-endpoints)
+    - [Login](#userlogin)
+    - [Register](#userregister)
+    - [Check Token](#usercheck-token)
+    - [Get User Info](#userget-user-info)
+5.  [Group Chat Endpoints](#group-endpoints)
+    - [Create Group Chat](#groupcreate)
+    - [Get Group Chats](#groupget)
+    - [Get Group Members](#groupget-users)
+    - [Add Members](#groupadd-users)
+    - [Remove Member](#groupremove-user)
+    - [Edit Group Picture](#groupedit-picture)
+    - [Get Group Messages](#groupget-messages)
+6.  [Friend Endpoints](#friend-endpoints)
+    - [Get Friends](#friendget)
+    - [Remove Friend](#frienddelete)
+    - [Send Friend Request](#friendsend-request)
+    - [Get Friend Requests](#friendget-requests)
+    - [Accept Friend Request](#friendaccept-request)
+    - [Cancel Friend Request](#friendcancel-request)
+    - [Deny Friend Request](#frienddeny-request)
+    #### TODO: ADD WEBSOKCET DOCS
+
 ## Overview
 
-A brief, high-level description of what the API does. What problem does it solve? What are its main features? Who is the target audience?
+#### TODO
 
 ## Base URL
 
@@ -11,919 +37,705 @@ Websocket endpoint - `wss://ws.gchat.com/`
 
 ## Authentication
 
-How to authenticate with the API. This might include:
+Authentication with the GChat API is primarily done using JWT (JSON Web Tokens).
 
-- API Keys: How to obtain and use API keys (include example headers or query parameters).
-- OAuth 2.0: Details on the OAuth 2.0 flow, including endpoints for authorization, token retrieval, and required scopes.
-- Other methods: Basic Authentication, JWT, etc.
-
-Example using an API Key in a header:
-
-```
-
-X-API-Key: YOUR_API_KEY
-
-```
+After a user logs in or registers, a JWT is issued. This token must be included in subsequent requests.
 
 ## Endpoints
 
-### User endpoints:
+### User endpoints
 
 #### `/user/login`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Authenticates a user and returns a JWT token.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Authentication:** Not required.
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+username=string&password=string
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Successful login, returns JWT           |
+| 401  | Unauthorized - Invalid credentials           |
+| 400  | Bad Request - Invalid request parameters     |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "token": "YOUR_JWT_TOKEN"
+}
+```
 
-- **Example Response (Error):**
+- \*\*Example Response (Error):
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Invalid credentials."
+}
+```
 
 #### `/user/register`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Registers a new user and returns a JWT token.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Authentication:** Not required.
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+username=string&email=string&password=string&confirmPassword=string&profilePicture=string
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                                      |
+| ---- | ---------------------------------------------------------------- |
+| 200  | OK - Successful registration, returns JWT                        |
+| 400  | Bad Request - Invalid request parameters, passwords do not match |
+| 500  | Internal Server Error - Something went wrong                     |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "token": "YOUR_JWT_TOKEN"
+}
+```
 
-- **Example Response (Error):**
+- \*\*Example Response (Error):
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Username or email already exists."
+}
+```
 
 #### `/user/check-token`
 
-- **Description:** A detailed description of what this endpoint does.
-- **Method:** `POST`
-- **Authentication:** Required? If so, what type?
+- **Description:** Checks if a JWT token is valid.
+- **Method:** `GET`
+- **Authentication:** Not required.
 - **Request Parameters:**
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
-
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+| Parameter | Type     | Required | Description    |
+| --------- | -------- | -------- | -------------- |
+| `token`   | `string` | Yes      | The JWT token. |
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Returns validation status               |
+| 401  | Unauthorized - Invalid token                 |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "valid": true
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "valid": false
+}
+```
 
 #### `/user/get-user-info`
 
-- **Description:** A detailed description of what this endpoint does.
-- **Method:** `POST`
-- **Authentication:** Required? If so, what type?
+- **Description:** Retrieves user information based on a valid JWT token.
+- **Method:** `GET`
+- **Authentication:** Required (JWT as query parameter).
 - **Request Parameters:**
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
-
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+| Parameter | Type     | Required | Description    |
+| --------- | -------- | -------- | -------------- |
+| `token`   | `string` | Yes      | The JWT token. |
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Returns user information                |
+| 401  | Unauthorized - Invalid or missing token      |
+| 404  | Not Found - User not found                   |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "id": 123,
+  "username": "testuser",
+  "email": "test@example.com",
+  "profile_picture": "url"
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Invalid token."
+}
+```
 
 ### Group Endpoints
 
 #### `/group/create`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Creates a new group chat.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
-
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Authentication:** Required (JWT in POST body).
 
 - **Request Body (for POST/PUT):**
 
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "token": "YOUR_JWT_TOKEN",
+  "group_name": "string",
+  "member_ids": [1, 2, 3]
+}
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Successful group creation               |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "Group Created",
+  "group_id": 4
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
+```json
+{
+  "error": "Internal Server Error"
+}
+```
 
-#
+#### `/group/get`
+
+- **Description:** Retrieves groups for a given user ID.
+- **Method:** `GET`
+- **Authentication:** Required (JWT as query parameter).
+- **Request Parameters:**
+
+| Parameter | Type     | Required | Description    |
+| --------- | -------- | -------- | -------------- |
+| `token`   | `string` | Yes      | The JWT token. |
+
+- **Response Codes:**
+
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Returns group information               |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
+
+- **Example Response (Success):**
+
+```json
+[
+  {
+    "name": "group1",
+    "profile_picture": "url",
+    "id": 1
+  }
+]
+```
+
+- **Example Response (Error):**
+
+```json
+{
+  "error": "Failed to fetch friendships"
+}
+```
 
 #### `/group/get-users`
 
-- **Description:** A detailed description of what this endpoint does.
-- **Method:** `POST`
-- **Authentication:** Required? If so, what type?
+- **Description:** Retrieves users in a specific group.
+- **Method:** `GET`
+- **Authentication:** Required (JWT as query parameter).
 - **Request Parameters:**
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
-
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+| Parameter  | Type     | Required | Description          |
+| ---------- | -------- | -------- | -------------------- |
+| `token`    | `string` | Yes      | The JWT token.       |
+| `group_id` | `string` | Yes      | The ID of the group. |
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Returns users in group                  |
+| 400  | Bad Request - Missing group_id               |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
+```json
+[
   {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
+    "username": "user1",
+    "profile_picture": "url",
+    "friend_id": 2
   }
-  ```
+]
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "User not in group"
+}
+```
 
 #### `/group/add-users`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Adds users to an existing group.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
-
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Authentication:** Required (JWT in POST body).
 
 - **Request Body (for POST/PUT):**
 
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "token": "YOUR_JWT_TOKEN",
+  "group_id": 1,
+  "new_member_ids": [4, 5]
+}
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Users added successfully                |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "Users Added"
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Internal Server Error"
+}
+```
 
 #### `/group/remove-user`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Removes a user from a group.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Authentication:** Required (JWT in POST body).
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+token=YOUR_JWT_TOKEN&group_id=1&remove_id=4
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - User removed successfully               |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "User Removed"
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Failed to remove user"
+}
+```
 
 #### `/group/edit-picture`
 
-- **Description:** A detailed description of what this endpoint does.
-- **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Description:** Edits the profile picture of a group.
+- **Method:** `PUT`
+- **Authentication:** Required (JWT in PUT body).
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+token=YOUR_JWT_TOKEN&group_id=1&picture_url=new_url
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Picture updated successfully            |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "Picture Updated"
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Failed to update picture"
+}
+```
 
 #### `/group/get-messages`
 
-- **Description:** A detailed description of what this endpoint does.
-- **Method:** `POST`
-- **Authentication:** Required? If so, what type?
+- **Description:** Retrieves messages from a group.
+- **Method:** `GET`
+- **Authentication:** Required (JWT in query parameters).
 - **Request Parameters:**
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
-
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+| Parameter  | Type     | Required | Description          |
+| ---------- | -------- | -------- | -------------------- |
+| `token`    | `string` | Yes      | The JWT token.       |
+| `group_id` | `string` | Yes      | The ID of the group. |
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Returns messages                        |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
+```json
+[
   {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
+    "id": 1,
+    "content": "Hello!",
+    "user_id": 2,
+    "username": "testuser",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "profile_picture": "url"
   }
-  ```
+]
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Failed to fetch messages"
+}
+```
 
 ### Friend Endpoints
 
 #### `/friend/get`
 
-- **Description:** A detailed description of what this endpoint does.
-- **Method:** `POST`
-- **Authentication:** Required? If so, what type?
+- **Description:** Retrieves a list of friends for a user.
+- **Method:** `GET`
+- **Authentication:** Required (JWT in query parameters).
 - **Request Parameters:**
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
-
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+| Parameter | Type     | Required | Description    |
+| --------- | -------- | -------- | -------------- |
+| `token`   | `string` | Yes      | The JWT token. |
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Returns list of friends                 |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
+```json
+[
   {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
+    "friend_id": 2,
+    "username": "friend1"
   }
-  ```
+]
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Failed to fetch friendships"
+}
+```
 
 #### `/friend/delete`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Removes a friend from a user's friend list.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Authentication:** Required (JWT in POST body).
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+token=YOUR_JWT_TOKEN&user_id=2
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Friend removed successfully             |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "Friend removed"
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Failed to remove friend"
+}
+```
 
 #### `/friend/send-request`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Sends a friend request to a user.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Authentication:** Required (JWT in POST body).
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+token=YOUR_JWT_TOKEN&receiver_username=string
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Friend request sent successfully        |
+| 400  | Bad Request - User not found                 |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "Friend request sent successfully",
+  "friend_request": {}
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Internal server error, please try again"
+}
+```
 
 #### `/friend/get-requests`
 
-- **Description:** A detailed description of what this endpoint does.
-- **Method:** `POST`
-- **Authentication:** Required? If so, what type?
+- **Description:** Retrieves pending friend requests for a user.
+- **Method:** `GET`
+- **Authentication:** Required (JWT in query parameters).
 - **Request Parameters:**
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
-
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+| Parameter | Type     | Required | Description    |
+| --------- | -------- | -------- | -------------- |
+| `token`   | `string` | Yes      | The JWT token. |
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Returns pending friend requests         |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "outgoing": [
+    {
+      "sender_id": 1,
+      "receiver_id": 2,
+      "username": "user2"
+    }
+  ],
+  "incoming": [
+    {
+      "sender_id": 3,
+      "receiver_id": 1,
+      "username": "user3"
+    }
+  ]
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
-
-#
+```json
+{
+  "error": "Failed to fetch friend requests"
+}
+```
 
 #### `/friend/accept-request`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Accepts a friend request.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Authentication:** Required (JWT in POST body).
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+token=YOUR_JWT_TOKEN&user_id=3
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Friend request accepted                 |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "Friend request accepted"
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
+```json
+{
+  "error": "Failed to accept friend request"
+}
+```
 
 #### `/friend/cancel-request`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Cancels a sent friend request.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Authentication:** Required (JWT in POST body).
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+token=YOUR_JWT_TOKEN&user_id=2
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Friend request canceled                 |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "Friend request canceled"
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
+```json
+{
+  "error": "Failed to cancel friend request"
+}
+```
 
 #### `/friend/deny-request`
 
-- **Description:** A detailed description of what this endpoint does.
+- **Description:** Denies an incoming friend request.
 - **Method:** `POST`
-- **Authentication:** Required? If so, what type?
-- **Request Parameters:**
+- **Authentication:** Required (JWT in POST body).
 
-  | Parameter | Type      | Required | Description                      |
-  | --------- | --------- | -------- | -------------------------------- |
-  | `param1`  | `string`  | Yes      | The first parameter.             |
-  | `param2`  | `integer` | No       | The second parameter (optional). |
+- **Request Body (for POST/PUT - x-www-form-urlencoded):**
 
-- **Request Body (for POST/PUT):**
-
-  ```json
-  {
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```
+token=YOUR_JWT_TOKEN&user_id=3
+```
 
 - **Response Codes:**
 
-  | Code | Description                                   |
-  | ---- | --------------------------------------------- |
-  | 200  | OK - Successful response                      |
-  | 201  | Created - Resource successfully created       |
-  | 400  | Bad Request - Invalid request parameters      |
-  | 401  | Unauthorized - Authentication required        |
-  | 403  | Forbidden - Not authorized to access resource |
-  | 404  | Not Found - Resource not found                |
-  | 500  | Internal Server Error - Something went wrong  |
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | OK - Friend request denied                   |
+| 401  | Unauthorized - Invalid or missing token      |
+| 500  | Internal Server Error - Something went wrong |
 
 - **Example Response (Success):**
 
-  ```json
-  {
-    "id": 123,
-    "field1": "value1",
-    "field2": 123
-  }
-  ```
+```json
+{
+  "message": "Friend request denied"
+}
+```
 
 - **Example Response (Error):**
 
-  ```json
-  {
-    "error": "Invalid parameter value."
-  }
-  ```
+```json
+{
+  "error": "Failed to deny friend request"
+}
+```
