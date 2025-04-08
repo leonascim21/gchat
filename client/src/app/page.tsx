@@ -1,19 +1,14 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { LogOut, Menu, MessageSquare, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import Ping from "./_components/ping";
 import ThemeToggle from "./_components/theme-toggle";
 import {
   Sidebar,
-  SidebarContent,
   SidebarFooter,
   SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -34,10 +29,10 @@ import GroupManagementModal from "./_components/groupManagementModal";
 import { fetchAll } from "./fetchData";
 import type { User, Group, Friend, FriendRequest } from "./fetchData";
 import Chat from "./_components/chat";
+import ChatList from "./_components/chatList";
 
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -151,6 +146,10 @@ export default function Home() {
     );
   };
 
+  const changeChat = (groupId: number) => {
+    setSelectedChat(groupId);
+  };
+
   const logOut = () => {
     localStorage.removeItem("token");
     setShowAuthModal(true);
@@ -204,42 +203,7 @@ export default function Home() {
               initialOutgoingFriends={outgoingFriends}
             />
           </div>
-          <div className="px-3 py-1 mb-2">
-            <Input
-              placeholder="Search chats..."
-              className="pl-3 pr-3 py-2 bg-slate-100 dark:bg-slate-800"
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <SidebarContent>
-            <SidebarMenu>
-              {groups
-                .filter((chat) =>
-                  chat.name.toLowerCase().includes(searchQuery.toLowerCase())
-                )
-                .map((chat) => (
-                  <div key={chat.id}>
-                    <hr className="pb-1 mx-2" />
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => setSelectedChat(chat.id)}
-                        isActive={selectedChat === chat.id}
-                      >
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={chat.profile_picture} />
-                          <AvatarFallback>
-                            <div className="bg-purple-200 dark:bg-purple-900 rounded-full h-6 w-6 flex items-center justify-center border border-gray-400">
-                              <Users className="h-3 w-3 " />
-                            </div>
-                          </AvatarFallback>
-                        </Avatar>
-                        {chat.name}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </div>
-                ))}
-            </SidebarMenu>
-          </SidebarContent>
+          <ChatList groups={groups} changeChat={changeChat} />
           <SidebarFooter>
             <hr />
             <div className="flex flex-row justify-between gap-2">
