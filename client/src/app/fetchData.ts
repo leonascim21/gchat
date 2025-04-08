@@ -74,15 +74,19 @@ export async function fetchAll() {
     const incomingFriends: FriendRequest[] = requestsResponse.data.incoming;
     const outgoingFriends: FriendRequest[] = requestsResponse.data.outgoing;
 
-    for (const group of groups) {
-      try {
-        const membersResponse = await axios.get<Friend[]>(
+    try {
+      const memberRequests = groups.map((group) =>
+        axios.get<Friend[]>(
           `https://api.gchat.cloud/group/get-users?token=${token}&group_id=${group.id}`
-        );
-        group.members = membersResponse.data;
-      } catch (error) {
-        console.error(error);
-      }
+        )
+      );
+
+      const memberResponses = await Promise.all(memberRequests);
+      groups.forEach((group, i) => {
+        group.members = memberResponses[i].data;
+      });
+    } catch (error) {
+      console.error(error);
     }
 
     return {
