@@ -186,6 +186,16 @@ async fn add_users_to_group(
         }
     };
 
+    let mut friends_only: Vec<i32> = Vec::new();
+    for member_id in form.new_member_ids.clone() {
+        match is_user_in_group(member_id, form.group_id, &state.db).await {
+            Ok(_) => friends_only.push(member_id),
+            Err(_) => continue,
+        }
+    }
+
+    if friends_only.len() == 0 {return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Unauthorized" }))).into_response() }
+
     for member_id in form.new_member_ids {
         match add_group_member(member_id, form.group_id, &state.db).await {
             Ok(_) => {}
