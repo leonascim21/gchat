@@ -159,7 +159,7 @@ export default function ChatList({ groups, changeChat, user }: Props) {
                 </SidebarMenuItem>
               </div>
             ))}
-          <h1 className="text-sm px-3 pt-3 font-semibold">DM's</h1>
+          <h1 className="text-sm px-3 pt-3 font-semibold">DM&#39;s</h1>
           {privateChats
             .filter((chat) =>
               chat.name.toLowerCase().includes(searchQuery.toLowerCase())
