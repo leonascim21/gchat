@@ -7,17 +7,18 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Group } from "../fetchData";
+import { Group, User } from "../fetchData";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users } from "lucide-react";
 
 interface Props {
   groups: Group[];
+  user: User | null;
   changeChat: (groupId: number) => void;
 }
 
-export default function ChatList({ groups, changeChat }: Props) {
+export default function ChatList({ groups, changeChat, user }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const { setOpenMobile } = useSidebar();
@@ -37,31 +38,72 @@ export default function ChatList({ groups, changeChat }: Props) {
             .filter((chat) =>
               chat.name.toLowerCase().includes(searchQuery.toLowerCase())
             )
-            .map((chat) => (
-              <div key={chat.id}>
-                <hr className="pb-1 mx-2" />
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    onClick={() => {
-                      setSelectedChat(chat.id);
-                      changeChat(chat.id);
-                      setOpenMobile(false);
-                    }}
-                    isActive={selectedChat === chat.id}
-                  >
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={chat.profile_picture} />
-                      <AvatarFallback>
-                        <div className="bg-purple-200 dark:bg-purple-900 rounded-full h-6 w-6 flex items-center justify-center border border-gray-400">
-                          <Users className="h-3 w-3 " />
-                        </div>
-                      </AvatarFallback>
-                    </Avatar>
-                    {chat.name}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </div>
-            ))}
+            .map((chat) =>
+              chat.group_type === 1 ? (
+                <div key={chat.id}>
+                  <hr className="pb-1 mx-2" />
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => {
+                        setSelectedChat(chat.id);
+                        changeChat(chat.id);
+                        setOpenMobile(false);
+                      }}
+                      isActive={selectedChat === chat.id}
+                    >
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={chat.profile_picture} />
+                        <AvatarFallback>
+                          <div className="bg-purple-200 dark:bg-purple-900 rounded-full h-6 w-6 flex items-center justify-center border border-gray-400">
+                            <Users className="h-3 w-3 " />
+                          </div>
+                        </AvatarFallback>
+                      </Avatar>
+                      {chat.name}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </div>
+              ) : (
+                <div key={chat.id}>
+                  <hr className="pb-1 mx-2" />
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => {
+                        setSelectedChat(chat.id);
+                        changeChat(chat.id);
+                        setOpenMobile(false);
+                      }}
+                      isActive={selectedChat === chat.id}
+                    >
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage
+                          src={
+                            chat.members.filter(
+                              (member) => member.friend_id !== (user?.id ?? 0)
+                            )[0]?.profile_picture
+                          }
+                        />
+                        <AvatarFallback>
+                          <div className="bg-purple-200 dark:bg-purple-900 rounded-full h-6 w-6 flex items-center justify-center border border-gray-400">
+                            {chat.members
+                              .filter(
+                                (member) => member.friend_id !== (user?.id ?? 0)
+                              )[0]
+                              ?.username.substring(0, 2)
+                              .toUpperCase() ?? ""}
+                          </div>
+                        </AvatarFallback>
+                      </Avatar>
+                      {
+                        chat.members.filter(
+                          (member) => member.friend_id !== (user?.id ?? 0)
+                        )[0]?.username
+                      }
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </div>
+              )
+            )}
         </SidebarMenu>
       </SidebarContent>
     </>

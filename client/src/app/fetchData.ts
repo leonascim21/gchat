@@ -29,6 +29,7 @@ export interface Group {
   name: string;
   profile_picture?: string;
   members: Friend[];
+  group_type: number;
 }
 
 export interface Message {

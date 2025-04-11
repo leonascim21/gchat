@@ -204,7 +204,7 @@ export default function Home() {
               initialOutgoingFriends={outgoingFriends}
             />
           </div>
-          <ChatList groups={groups} changeChat={changeChat} />
+          <ChatList groups={groups} changeChat={changeChat} user={user} />
           <SidebarFooter>
             <hr />
             <div className="flex flex-row justify-between gap-2">
@@ -252,6 +252,7 @@ export default function Home() {
                 <GroupManagementModal
                   group={groups.find((group) => group.id === selectedChat)!}
                   friends={friends}
+                  user={user}
                   removeGroupMember={removeGroupMember}
                   addGroupMember={addGroupMember}
                   editGroupPicture={editGroupPicture}
