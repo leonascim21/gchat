@@ -132,7 +132,11 @@ async fn send_friend_request(
     };
     let receiver =  match auth.get_user_by_username(form.receiver_username).await {
         Ok(user) => if user.is_some() { 
-            user.unwrap() 
+            if user.as_ref().unwrap().id != Some(user_id) {
+                user
+            } else {
+                return (StatusCode::BAD_REQUEST, Json(json!({"message": "Cannot add yourself!" }))); 
+            }
         } else { 
             return (StatusCode::BAD_REQUEST, Json(json!({"message": "User not found" }))); 
         },
@@ -143,7 +147,7 @@ async fn send_friend_request(
             );
         }
     };
-    match create_friend_request(user_id, receiver.id.unwrap(), &state.db).await {
+    match create_friend_request(user_id, receiver.unwrap().id.unwrap(), &state.db).await {
         Ok(request) => {
             let friend_request = json!(request);
             (StatusCode::OK, Json(json!({"message": "Friend request sent successfully", "friend_request": friend_request})))
