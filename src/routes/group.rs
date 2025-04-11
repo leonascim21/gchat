@@ -3,7 +3,7 @@ use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoRespon
 use gauth::validate_token;
 use serde_json::json;
 
-use crate::{state::ServerState, utils::queries::{change_group_picture, fetch_group_type, fetch_messages, is_user_in_group, remove_group_member}};
+use crate::{state::ServerState, utils::queries::{change_group_picture, fetch_friends_for_user, fetch_group_type, fetch_messages, is_user_in_group, remove_group_member}};
 use crate::utils::types::{CreateGroupForm, AddUsersForm, RemoveUserForm, EditPictureForm};
 use crate::utils::queries::{fetch_group_members, fetch_groups_for_user, add_group_member, create_group};
 
@@ -188,13 +188,11 @@ async fn add_users_to_group(
 
     let mut friends_only: Vec<i32> = Vec::new();
     for member_id in form.new_member_ids.clone() {
-        match is_user_in_group(member_id, form.group_id, &state.db).await {
+        match fetch_friends_for_user(member_id, &state.db).await {
             Ok(_) => friends_only.push(member_id),
-            Err(_) => continue,
+            Err(_) => return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Can only add friends to groups" }))).into_response(),
         }
     }
-
-    if friends_only.len() == 0 {return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Unauthorized" }))).into_response() }
 
     for member_id in form.new_member_ids {
         match add_group_member(member_id, form.group_id, &state.db).await {
