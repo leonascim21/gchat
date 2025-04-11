@@ -5,6 +5,7 @@ pub struct Group {
     pub id: i32,
     pub name: String,
     pub profile_picture: Option<String>,
+    pub group_type: i32,
 }
 
 pub struct Message {

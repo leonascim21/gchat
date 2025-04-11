@@ -3,7 +3,7 @@ use axum::{extract::{Query, State}, http::StatusCode, response::IntoResponse, ro
 use gauth::{validate_token, Auth};
 use serde_json::json;
 
-use crate::utils::{queries::{create_friendship, delete_friend_request, delete_friendship, fetch_friend_request}, types::{FriendForm, FriendRequestForm}};
+use crate::utils::{queries::{add_group_member, create_friendship, create_group, delete_friend_request, delete_friendship, delete_group, fetch_dm_id, fetch_friend_request}, types::{FriendForm, FriendRequestForm}};
 use crate::utils::queries::{fetch_friends_for_user, create_friend_request, fetch_incoming_requests, fetch_outgoing_requests};
 
 use crate::state::ServerState;
@@ -182,6 +182,29 @@ async fn accept_friend_request(
     let added_friend = create_friendship(user_id, form.user_id, &state.db).await;
     let reverse_friend = create_friendship(form.user_id, user_id, &state.db).await;
     let delete_request = delete_friend_request(form.user_id, user_id, &state.db).await;
+
+    let create_dm = create_group("DM".to_string(), 2, &state.db).await;
+    match create_dm {
+        Ok(group_id) => {
+            let member1 = add_group_member(user_id, group_id, &state.db).await;
+            let member2 = add_group_member(form.user_id, group_id, &state.db).await;
+            match (member1, member2) {
+                (Ok(_), Ok(_)) => {},
+                _ => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({"message": "Failed to add members to DM"})),
+                    );
+                }
+            }
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to create DM"})),
+            );
+        }
+    }
     
     match (added_friend, reverse_friend, delete_request) {
         (Ok(_), Ok(_), Ok(_)) => {
@@ -270,6 +293,26 @@ async fn remove_friendship(
 
     let remove_friendship = delete_friendship(user_id, form.user_id, &state.db).await;
     let remove_reverse_friendship = delete_friendship(form.user_id, user_id, &state.db).await;
+
+    match fetch_dm_id(user_id, form.user_id, &state.db).await {
+        Ok(dm_id) => {
+            match delete_group(dm_id, &state.db).await {
+                Ok(_) => {},
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({"message": "Failed to delete DM"})),
+                    );
+                }
+            };
+        },
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to fetch DM ID"})),
+            );
+        }
+    };
 
     match(remove_friendship, remove_reverse_friendship) {
         (Ok(_), Ok(_)) => {

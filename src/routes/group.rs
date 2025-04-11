@@ -3,7 +3,7 @@ use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoRespon
 use gauth::validate_token;
 use serde_json::json;
 
-use crate::{state::ServerState, utils::queries::{change_group_picture, fetch_messages, is_user_in_group, remove_group_member}};
+use crate::{state::ServerState, utils::queries::{change_group_picture, fetch_group_type, fetch_messages, is_user_in_group, remove_group_member}};
 use crate::utils::types::{CreateGroupForm, AddUsersForm, RemoveUserForm, EditPictureForm};
 use crate::utils::queries::{fetch_group_members, fetch_groups_for_user, add_group_member, create_group};
 
@@ -37,7 +37,7 @@ async fn create_group_chat(
         }
     };
     
-    let group_id = match create_group(form.group_name, &state.db).await {
+    let group_id = match create_group(form.group_name, 1, &state.db).await {
         Ok(group_id) => group_id,
         Err(_) => {
             return (
@@ -91,12 +91,13 @@ async fn get_groups(
                     "name": g.name,
                     "profile_picture": g.profile_picture,
                     "id": g.id,
+                    "group_type": g.group_type,
                 })
             }).collect::<Vec<_>>();
             (StatusCode::OK, Json(groups_data)).into_response()
         }
         Err(_) => {
-            (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch friendships" }))).into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Failed to fetch groups" }))).into_response()
         }
     }
 }
@@ -174,6 +175,17 @@ async fn add_users_to_group(
         }
     };
 
+    match fetch_group_type(form.group_id, &state.db).await {
+        Ok(group_type) => {
+            if group_type != 1 {
+                return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Unauthorized" }))).into_response()
+            }
+        }
+        Err(_) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"message": "Internal Server Error"}))).into_response();
+        }
+    };
+
     for member_id in form.new_member_ids {
         match add_group_member(member_id, form.group_id, &state.db).await {
             Ok(_) => {}
@@ -189,7 +201,6 @@ async fn add_users_to_group(
 
   
 }
-
 
 async fn remove_user_from_group(
     State(state): State<Arc<ServerState>>,
@@ -207,6 +218,17 @@ async fn remove_user_from_group(
         Ok(_) => {}
         Err(_) => {
             return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({ "error": "Unauthorized" }))).into_response()
+        }
+    };
+
+    match fetch_group_type(form.group_id, &state.db).await {
+        Ok(group_type) => {
+            if group_type != 1 {
+                return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Unauthorized" }))).into_response()
+            }
+        }
+        Err(_) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"message": "Internal Server Error"}))).into_response();
         }
     };
 

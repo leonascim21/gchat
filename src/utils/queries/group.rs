@@ -5,7 +5,7 @@ pub async fn fetch_groups_for_user(user_id: i32, db: &PgPool) -> Result<Vec<Grou
     sqlx::query_as!(
         Group,
         r#"
-        SELECT g.id, g.name, g.profile_picture
+        SELECT g.id, g.name, g.profile_picture, g.group_type
         FROM groups g
         JOIN group_members gm ON g.id = gm.group_id
         WHERE gm.user_id = $1
@@ -43,14 +43,14 @@ pub async fn add_group_member(user_id: i32, group_id: i32, db: &PgPool) -> Resul
     Ok(())
 }
 
-pub async fn create_group(group_name: String, db: &PgPool) -> Result<i32, sqlx::Error> {
+pub async fn create_group(group_name: String, group_type: i32, db: &PgPool) -> Result<i32, sqlx::Error> {
     let result = sqlx::query!(
         r#"
-        INSERT INTO groups (name)
-        VALUES ($1)
+        INSERT INTO groups (name, group_type)
+        VALUES ($1, $2)
         RETURNING id
         "#,
-        group_name
+        group_name, group_type
     ).fetch_one(db).await?;
 
     Ok(result.id)
@@ -133,4 +133,54 @@ pub async fn insert_message_in_db(user_id: i32, group_id:i32, content: String, d
     )
     .fetch_one(db)
     .await
+}
+
+pub async fn fetch_group_type(group_id: i32, db: &PgPool) -> Result<i32, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        SELECT group_type
+        FROM groups
+        WHERE id = $1
+        "#,
+        group_id
+    )
+    .fetch_one(db)
+    .await?;
+
+    Ok(result.group_type)
+}
+
+pub async fn delete_group(group_id: i32, db: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        DELETE FROM groups
+        WHERE id = $1
+        "#,
+        group_id
+    )
+    .execute(db)
+    .await?;
+    Ok(())
+}
+
+pub async fn fetch_dm_id(user_id: i32, friend_id: i32, db: &PgPool) -> Result<i32, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        SELECT g.id
+        FROM groups g
+        WHERE g.group_type = 2
+        AND EXISTS (
+            SELECT FROM group_members gm WHERE gm.group_id = g.id AND gm.user_id = $1
+        )
+        AND EXISTS (
+            SELECT FROM group_members gm WHERE gm.group_id = g.id AND gm.user_id = $2
+        )
+        "#,
+        user_id,
+        friend_id
+    )
+    .fetch_one(db)
+    .await?;
+
+    Ok(result.id)
 }
