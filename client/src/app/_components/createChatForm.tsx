@@ -100,6 +100,7 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
           name: payload.groupName,
           profile_picture: "",
           members: [],
+          group_type: 1,
         });
         closeModal();
       })
