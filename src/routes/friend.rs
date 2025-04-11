@@ -132,10 +132,12 @@ async fn send_friend_request(
     };
     let receiver =  match auth.get_user_by_username(form.receiver_username).await {
         Ok(user) => if user.is_some() { 
-            if user.as_ref().unwrap().id != Some(user_id) {
-                user
-            } else {
+            if user.as_ref().unwrap().id == Some(user_id) {
                 return (StatusCode::BAD_REQUEST, Json(json!({"message": "Cannot add yourself!" }))); 
+            } else if fetch_friends_for_user(user_id, &state.db).await.unwrap().iter().any(|friend| friend.id == user_id) {
+                return (StatusCode::BAD_REQUEST, Json(json!({"message": "User is already your friend" }))); 
+            } else {
+                user
             }
         } else { 
             return (StatusCode::BAD_REQUEST, Json(json!({"message": "User not found" }))); 
