@@ -20,6 +20,7 @@ use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use gauth::models::Auth;
 use gauth::validate_token;
+use routes::temp_group::check_end_date;
 use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use state::ServerState;
@@ -33,7 +34,7 @@ use tokio::net::TcpListener;
 use tokio::sync::{mpsc, Mutex};
 
 use tower_http::cors::CorsLayer;
-use utils::queries::{insert_message_in_db, is_user_in_group};
+use utils::queries::{fetch_group_type, get_temp_info_with_group_id, insert_message_in_db, is_user_in_group};
 
 #[tokio::main]
 async fn main() {
@@ -107,21 +108,52 @@ async fn ws_handler(
     Path(group_id): Path<i32>,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let token = params.get("token").cloned();
 
+    let token = params.get("token").cloned();
     if token.is_none() {
         return (StatusCode::UNAUTHORIZED, "Missing authentication token").into_response();
     }
     dotenv().ok();
-
     let key = std::env::var("JWT_KEY").expect("Must set JWT_KEY environment variable");
-
     let token = token.unwrap();
 
     let user_id = match validate_token(&token, key).await {
         Ok(claims) => claims.sub.parse::<i32>().unwrap(),
         Err(_) => return (StatusCode::UNAUTHORIZED, "Invalid token").into_response(),
     };
+
+    let group_type = match fetch_group_type(group_id, &state.db).await {
+        Ok(group_type) => group_type,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch group type").into_response(),
+    };
+
+    if group_type == 3 {
+        let temp_chat_info = match get_temp_info_with_group_id(group_id, &state.db).await {
+            Ok(temp_chat_info) => temp_chat_info,
+            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response(),
+        };
+
+        match check_end_date(temp_chat_info.end_date, group_id, &state.db).await {
+            Ok(_) => {}
+            Err(_) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response();
+            }
+        }
+
+        if temp_chat_info.password.is_some() {
+            let password = params.get("password");
+            let password = match password {
+                Some(password) => password.parse::<String>().unwrap(),
+                None => {
+                    return (StatusCode::UNAUTHORIZED, "Missing password").into_response();
+                }
+            };
+            if temp_chat_info.password.unwrap() != password {
+                return (StatusCode::UNAUTHORIZED, "Invalid password").into_response();
+            }
+        }
+        return ws.on_upgrade(move |socket: WebSocket| handle_socket(socket, user_id, state, group_id));
+    }
 
     match is_user_in_group(user_id, group_id, &state.db).await {
         Ok(_) => {},
