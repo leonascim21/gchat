@@ -191,7 +191,7 @@ async fn get_group_messages(
     }
     
     if temp_chat_info.password.is_some() {
-        let password = params.get("temp");
+        let password = params.get("password");
         let password = match password {
             Some(password) => password.parse::<String>().unwrap(),
             None => {
