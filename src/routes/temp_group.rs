@@ -234,7 +234,7 @@ async fn get_group_messages(
 
 pub async fn check_end_date(end_date: DateTime<Utc>, group_id: i32, db: &PgPool) -> Result<(), ()> {
     let now = Utc::now();
-    if end_date < now {
+    if end_date > now {
         return Ok(());
     }
     match delete_group(group_id, db).await {
