@@ -16,7 +16,12 @@
     - [Remove Member](#groupremove-user)
     - [Edit Group Picture](#groupedit-picture)
     - [Get Group Messages](#groupget-messages)
-6.  [Friend Endpoints](#friend-endpoints)
+6.  [Temporary Group Chat Endpoints](#temporary-group-chat-endpoints)
+    - [Get Temporary Group Messages](#temp-groupget-messages)
+    - [Get Temporary Group Info](#temp-groupget-group-info)
+    - [Check if Group has a Password](#temp-grouphas-password)
+    - [Create Temprorary Group Chat](#temp-groupcreate)
+7.  [Friend Endpoints](#friend-endpoints)
     - [Get Friends](#friendget)
     - [Remove Friend](#frienddelete)
     - [Send Friend Request](#friendsend-request)
@@ -469,6 +474,167 @@ token=YOUR_JWT_TOKEN&group_id=1&picture_url=new_url
   "error": "Failed to fetch messages"
 }
 ```
+
+### Temporary Group Chat Endpoints
+
+#### `/temp-group/get-messages`
+
+- **Description:** Retrieves messages from a temporary group chat.
+- **Method:** `GET`
+- **Authentication:** Required (temporary chat key as query parameter).
+- **Request Parameters:**
+
+  | Parameter  | Type     | Required | Description                                                              |
+  | :--------- | :------- | :------- | :----------------------------------------------------------------------- |
+  | `temp`     | `string` | Yes      | The temporary chat key for the group.                                    |
+  | `password` | `string` | No       | The password for the group, required if the group is password-protected. |
+
+- **Response Codes:**
+
+  | Code | Description                                                    |
+  | :--- | :------------------------------------------------------------- |
+  | 200  | OK - Returns messages from the group.                          |
+  | 401  | Unauthorized - Missing chat key or incorrect password.         |
+  | 500  | Internal Server Error - Failed to fetch chat info or messages. |
+
+- **Example Response (Success):**
+
+  ```json
+  [
+    {
+      "id": 1,
+      "content": "Hello!",
+      "user_id": 2,
+      "username": "testuser",
+      "timestamp": "2024-01-01T00:00:00Z",
+      "profile_picture": "url"
+    }
+  ]
+  ```
+
+- **Example Response (Error - Unauthorized):**
+
+  ```json
+  {
+    "error": "Unauthorized"
+  }
+  ```
+
+#### `/temp-group/get-group-info`
+
+- **Description:** Retrieves information about a temporary group chat.
+- **Method:** `GET`
+- **Authentication:** Required (temporary chat key as query parameter).
+- **Request Parameters:**
+
+  | Parameter  | Type     | Required | Description                                                              |
+  | :--------- | :------- | :------- | :----------------------------------------------------------------------- |
+  | `temp`     | `string` | Yes      | The temporary chat key for the group.                                    |
+  | `password` | `string` | No       | The password for the group, required if the group is password-protected. |
+
+- **Response Codes:**
+
+  | Code | Description                                            |
+  | :--- | :----------------------------------------------------- |
+  | 200  | OK - Returns group information.                        |
+  | 401  | Unauthorized - Missing chat key or incorrect password. |
+  | 500  | Internal Server Error - Failed to fetch chat info.     |
+
+- **Example Response (Success):**
+
+  ```json
+  {
+    "chat_key": "unique_chat_key",
+    "group_id": 123,
+    "end_date": "2024-01-01T00:00:00Z",
+    "name": "Temporary Group"
+  }
+  ```
+
+- **Example Response (Error - Unauthorized):**
+
+  ```json
+  {
+    "error": "Unauthorized"
+  }
+  ```
+
+#### `/temp-group/has-password`
+
+- **Description:** Checks if a temporary group chat is password-protected.
+- **Method:** `GET`
+- **Authentication:** Required (temporary chat key as query parameter).
+- **Request Parameters:**
+
+  | Parameter | Type     | Required | Description             |
+  | :-------- | :------- | :------- | :---------------------- |
+  | `temp`    | `string` | Yes      | The temporary chat key. |
+
+- **Response Codes:**
+
+  | Code | Description                                        |
+  | :--- | :------------------------------------------------- |
+  | 200  | OK - Returns whether the group has a password.     |
+  | 401  | Unauthorized - Missing chat key.                   |
+  | 500  | Internal Server Error - Failed to fetch chat info. |
+
+- **Example Response (Has Password):**
+
+  ```json
+  {
+    "has_password": true
+  }
+  ```
+
+- **Example Response (Error):**
+
+  ```json
+  {
+    "error": "Failed to fetch chat info"
+  }
+  ```
+
+#### `/temp-group/create`
+
+- **Description:** Creates a new temporary group chat.
+- **Method:** `POST`
+- **Authentication:** Not required.
+- **Request Body (for POST/PUT):**
+
+  ```json
+  {
+    "group_name": "string",
+    "end_date": "string",
+    "password": "string (optional, leave empty for no password)"
+  }
+  ```
+
+- **Response Codes:**
+
+  | Code | Description                                                         |
+  | :--- | :------------------------------------------------------------------ |
+  | 200  | OK - Successful group creation, returns chat key.                   |
+  | 400  | Bad Request - Invalid end date format.                              |
+  | 500  | Internal Server Error - Something went wrong during group creation. |
+
+- **Example Response (Success):**
+
+  ```json
+  {
+    "message": "Group Created",
+    "chat_key": "temp_chat_key"
+  }
+  ```
+
+- **Example Response (Error):**
+
+  ```json
+  {
+    "message": "Internal Server Error"
+  }
+  ```
+
+#
 
 ### Friend Endpoints
 
