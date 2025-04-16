@@ -61,7 +61,7 @@ export default function TemporaryChat() {
           setIsLoading(false);
         }
       })
-      .catch((error) => {
+      .catch(() => {
         router.push("/");
       });
   }, []);
@@ -72,7 +72,7 @@ export default function TemporaryChat() {
       router.push("/");
     }
 
-    let response = await axios
+    const response = await axios
       .get(
         `https://api.gchat.cloud/temp-group/get-group-info?password=${password}&temp=${tempChatId}`
       )
