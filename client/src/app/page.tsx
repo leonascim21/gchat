@@ -36,7 +36,6 @@ import type {
 } from "./fetchData";
 import Chat from "./_components/chat";
 import ChatList from "./_components/chatList";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
@@ -51,7 +50,6 @@ export default function Home() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>([]);
   const [outgoingFriends, setOutgoingFriends] = useState<FriendRequest[]>([]);
-  const router = useRouter();
 
   useEffect(() => {
     const loadInitialData = async () => {
