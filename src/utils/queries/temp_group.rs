@@ -1,6 +1,7 @@
 use sqlx::PgPool;
 use crate::utils::types::TempGroupsInfo;
 use chrono::{DateTime, Utc};
+use bcrypt::hash;
 
 use crate::utils::queries::create_group;
 
@@ -21,6 +22,10 @@ pub async fn fetch_temp_chat(chat_key: String, db: &PgPool) -> Result<TempGroups
 
 pub async fn create_temp_chat(chat_key: String, name: String, end_date: DateTime<Utc>, password: Option<String>, db: &PgPool) -> Result<String, sqlx::Error> {
     let created_group_id = create_group(name, 3, db).await?;
+    let hashed_password = match password {
+        Some(pass) => Some(hash(pass, bcrypt::DEFAULT_COST).unwrap()),
+        None => None,
+    };
     
     let result = sqlx::query!(
         r#"
@@ -28,7 +33,7 @@ pub async fn create_temp_chat(chat_key: String, name: String, end_date: DateTime
         VALUES ($1, $2, $3, $4)
         RETURNING temp_chat_key
         "#,
-        chat_key, created_group_id, end_date, password
+        chat_key, created_group_id, end_date, hashed_password
     ).fetch_one(db).await?;
 
     Ok(result.temp_chat_key)

@@ -16,6 +16,7 @@ use axum::{
     Json,
 };
 
+use bcrypt::verify;
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use gauth::models::Auth;
@@ -148,7 +149,7 @@ async fn ws_handler(
                     return (StatusCode::UNAUTHORIZED, "Missing password").into_response();
                 }
             };
-            if temp_chat_info.password.unwrap() != password {
+            if !(verify(password, &temp_chat_info.password.unwrap()).unwrap_or(false)) {
                 return (StatusCode::UNAUTHORIZED, "Invalid password").into_response();
             }
         }

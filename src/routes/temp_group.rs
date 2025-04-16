@@ -4,6 +4,8 @@ use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use bcrypt::verify;
+
 
 use crate::{state::ServerState, utils::queries::delete_group};
 use crate::utils::types::CreateTempGroupForm;
@@ -128,7 +130,7 @@ async fn get_group_info(
                         ).into_response();
                     }
                 };
-                if temp_chat_info.password.unwrap() != password {
+                if !(verify(password, &temp_chat_info.password.unwrap()).unwrap_or(false)) {
                     return (
                         StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" })),
                     ).into_response();
@@ -200,7 +202,7 @@ async fn get_group_messages(
                 ).into_response();
             }
         };
-        if temp_chat_info.password.unwrap() != password {
+        if !(verify(password, &temp_chat_info.password.unwrap()).unwrap_or(false)) {
             return (
                 StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" })),
             ).into_response();
