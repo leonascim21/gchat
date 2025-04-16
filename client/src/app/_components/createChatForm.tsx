@@ -36,6 +36,7 @@ import { FormEvent, useState } from "react";
 import axios from "axios";
 import type { Group, Friend } from "../fetchData";
 import { convertToEndDate } from "../utils";
+import Link from "next/link";
 
 interface CreateGroupResponse {
   group_id: number;
@@ -51,6 +52,7 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [showLink, setShowLink] = useState("");
 
   const openModal = () => {
     setIsOpen(true);
@@ -120,12 +122,9 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
       endDate: convertToEndDate(parseInt(e.currentTarget.duration.value)),
     };
     axios
-      .post<CreateGroupResponse>(
-        "https://api.gchat.cloud/temp-group/create",
-        payload
-      )
-      .then(() => {
-        closeModal();
+      .post("https://api.gchat.cloud/temp-group/create", payload)
+      .then((response) => {
+        setShowLink(response.data.chat_key);
       })
       .catch((error) => {
         console.error(error);
@@ -225,38 +224,60 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <form
-                        className="space-y-2"
-                        onSubmit={(e) => createTempGroupChat(e)}
-                      >
-                        <div className="space-y-1">
-                          <Label>Duration</Label>
-                          <Select name="duration">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Duration" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="5">5 minutes</SelectItem>
-                              <SelectItem value="30">30 minutes</SelectItem>
-                              <SelectItem value="60">1 hour</SelectItem>
-                              <SelectItem value="360">6 hours</SelectItem>
-                              <SelectItem value="1440">1 day</SelectItem>
-                              <SelectItem value="10080">7 days</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      {showLink ? (
+                        <div className="flex flex-col items-center">
+                          <h1>Access Temprary Group at:</h1>
+                          <Link
+                            href={`/${showLink}`}
+                            className="text-center text-primary underline"
+                          >
+                            {`https://gchat.cloud/${showLink}`}
+                          </Link>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="w-fit mt-4"
+                            onClick={() => {
+                              setShowLink("");
+                            }}
+                          >
+                            Create Another Chat
+                          </Button>
                         </div>
-                        <div className="space-y-1">
-                          <Label>Group Name</Label>
-                          <Input name="groupName" type="group_name" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label>Set Password (Optional)</Label>
-                          <Input name="password" type="password" />
-                        </div>
-                        <Button type="submit" disabled={isLoading}>
-                          {isLoading ? "..." : "Create Chat"}
-                        </Button>
-                      </form>
+                      ) : (
+                        <form
+                          className="space-y-2"
+                          onSubmit={(e) => createTempGroupChat(e)}
+                        >
+                          <div className="space-y-1">
+                            <Label>Duration</Label>
+                            <Select name="duration">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Duration" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="5">5 minutes</SelectItem>
+                                <SelectItem value="30">30 minutes</SelectItem>
+                                <SelectItem value="60">1 hour</SelectItem>
+                                <SelectItem value="360">6 hours</SelectItem>
+                                <SelectItem value="1440">1 day</SelectItem>
+                                <SelectItem value="10080">7 days</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Group Name</Label>
+                            <Input name="groupName" type="group_name" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Set Password (Optional)</Label>
+                            <Input name="password" type="password" />
+                          </div>
+                          <Button type="submit" disabled={isLoading}>
+                            {isLoading ? "..." : "Create Chat"}
+                          </Button>
+                        </form>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
