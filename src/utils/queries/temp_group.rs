@@ -22,6 +22,12 @@ pub async fn fetch_temp_chat(chat_key: String, db: &PgPool) -> Result<TempGroups
 
 pub async fn create_temp_chat(chat_key: String, name: String, end_date: DateTime<Utc>, password: Option<String>, db: &PgPool) -> Result<String, sqlx::Error> {
     let created_group_id = create_group(name, 3, db).await?;
+
+    let password = match password {
+        Some(password) => {if password.is_empty() { None } else { Some(password) }},
+        None => None,
+    };
+    
     let hashed_password = match password {
         Some(pass) => Some(hash(pass, bcrypt::DEFAULT_COST).unwrap()),
         None => None,

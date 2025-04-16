@@ -118,11 +118,13 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
 
     const payload = {
       groupName: e.currentTarget.groupName.value,
-      password: e.currentTarget.password.value,
+      password: e.currentTarget.password.value.trim() ?? null,
       endDate: convertToEndDate(parseInt(e.currentTarget.duration.value)),
     };
+
+    console.log(payload.password);
     axios
-      .post("https://api.gchat.cloud/temp-group/create", payload)
+      .post("http://localhost:3001/temp-group/create", payload)
       .then((response) => {
         setShowLink(response.data.chat_key);
       })
