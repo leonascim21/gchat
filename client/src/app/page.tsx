@@ -27,9 +27,16 @@ import axios from "axios";
 import AuthModals from "./_components/authModals";
 import GroupManagementModal from "./_components/groupManagementModal";
 import { fetchAll } from "./fetchData";
-import type { User, Group, Friend, FriendRequest } from "./fetchData";
+import type {
+  User,
+  Group,
+  Friend,
+  FriendRequest,
+  TempGroup,
+} from "./fetchData";
 import Chat from "./_components/chat";
 import ChatList from "./_components/chatList";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [initialLoad, setInitialLoad] = useState(true);
@@ -40,9 +47,11 @@ export default function Home() {
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [tempGroups, setTempGroups] = useState<TempGroup[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incomingFriends, setIncomingFriends] = useState<FriendRequest[]>([]);
   const [outgoingFriends, setOutgoingFriends] = useState<FriendRequest[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -74,13 +83,14 @@ export default function Home() {
         setIsAuth(true);
         const fetchedData = await fetchAll();
 
-        console.log("Data fetched successfully:");
+        console.log("Data fetched successfully");
 
         setUser(fetchedData.user);
         setGroups(fetchedData.groups);
         setFriends(fetchedData.friends);
         setIncomingFriends(fetchedData.incomingFriends);
         setOutgoingFriends(fetchedData.outgoingFriends);
+        setTempGroups(fetchedData.tempGroups);
       } catch (error) {
         console.error("Error during initial data load:", error);
         setShowAuthModal(true);
@@ -97,6 +107,10 @@ export default function Home() {
   const addGroupChat = (newGroup: Group) => {
     setGroups((prev) => [...prev, newGroup]);
     setSelectedChat(newGroup.id);
+  };
+
+  const addTempGroupChat = (newGroup: TempGroup) => {
+    setTempGroups((prev) => [...prev, newGroup]);
   };
 
   const addGroupMember = (memberIds: number[], groupId: number) => {
@@ -197,14 +211,23 @@ export default function Home() {
         <Sidebar>
           <h1 className="text-md font-semibold text-center pt-4">GChat</h1>
           <div className="flex flex-row justify-between">
-            <CreateChatForm addGroupChat={addGroupChat} friends={friends} />
+            <CreateChatForm
+              addGroupChat={addGroupChat}
+              friends={friends}
+              addTempChat={addTempGroupChat}
+            />
             <ManageFriends
               initialFriends={friends}
               initialIncomingFriends={incomingFriends}
               initialOutgoingFriends={outgoingFriends}
             />
           </div>
-          <ChatList groups={groups} changeChat={changeChat} user={user} />
+          <ChatList
+            groups={groups}
+            tempGroups={tempGroups}
+            changeChat={changeChat}
+            user={user}
+          />
           <SidebarFooter>
             <hr />
             <div className="flex flex-row justify-between gap-2">

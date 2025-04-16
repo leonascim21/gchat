@@ -34,7 +34,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormEvent, useState } from "react";
 import axios from "axios";
-import type { Group, Friend } from "../fetchData";
+import type { Group, Friend, TempGroup } from "../fetchData";
 import { convertToEndDate } from "../utils";
 import Link from "next/link";
 
@@ -45,10 +45,15 @@ interface CreateGroupResponse {
 
 interface Props {
   addGroupChat: (chat: Group) => void;
+  addTempChat: (chat: TempGroup) => void;
   friends: Friend[];
 }
 
-export default function CreateChatForm({ addGroupChat, friends }: Props) {
+export default function CreateChatForm({
+  addGroupChat,
+  addTempChat,
+  friends,
+}: Props) {
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -92,10 +97,7 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
       memberIds: selectedMemberIds,
     };
     axios
-      .post<CreateGroupResponse>(
-        "https://api.gchat.cloud/group/create",
-        payload
-      )
+      .post<CreateGroupResponse>("http://localhost:3001/group/create", payload)
       .then((response) => {
         addGroupChat({
           id: response.data.group_id,
@@ -114,19 +116,31 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
 
   function createTempGroupChat(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return;
+    }
+
     setIsLoading(true);
 
     const payload = {
       groupName: e.currentTarget.groupName.value,
       password: e.currentTarget.password.value.trim() ?? null,
       endDate: convertToEndDate(parseInt(e.currentTarget.duration.value)),
+      token: token,
     };
 
     console.log(payload.password);
     axios
-      .post("http://localhost:3001/temp-group/create", payload)
+      .post("https://api.gchat.cloud/temp-group/create", payload)
       .then((response) => {
         setShowLink(response.data.chat_key);
+        addTempChat({
+          id: response.data.group_id,
+          name: payload.groupName,
+          temp_chat_key: response.data.chat_key,
+          end_date: payload.endDate,
+        });
       })
       .catch((error) => {
         console.error(error);

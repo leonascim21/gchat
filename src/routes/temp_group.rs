@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 use axum::{extract::{self, Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post}, Json, Router};
+use gauth::validate_token;
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -7,7 +8,7 @@ use chrono::{DateTime, Utc};
 use bcrypt::verify;
 
 
-use crate::{state::ServerState, utils::queries::delete_group};
+use crate::{state::ServerState, utils::queries::{delete_group, fetch_temp_chats_for_user}};
 use crate::utils::types::CreateTempGroupForm;
 use crate::utils::queries::{create_temp_chat, fetch_messages, fetch_temp_chat};
 
@@ -17,12 +18,77 @@ pub fn router() -> Router<Arc<ServerState>> {
         .route("/get-group-info", get(get_group_info))
         .route("/has-password", get(has_password))
         .route("/create", post(create_group_chat))
+        .route("/get", get(get_temp_groups_for_user))
+}
+
+
+async fn get_temp_groups_for_user (    
+    State(state): State<Arc<ServerState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let token = match params.get("token") {
+        None => {
+            return (StatusCode::UNAUTHORIZED, Json(json!({ "error": "Missing token" }))).into_response()
+        }
+        Some(token) => token,
+    };
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    let user_id = match validate_token(token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
+        Err(_) => {
+            return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Invalid token" }))).into_response()
+        }
+    };
+
+    match fetch_temp_chats_for_user(user_id, &state.db).await {
+        Ok(temp_chats) => {
+            
+            let mut valid_temp_chats = Vec::new();
+            for chat in temp_chats {
+                match check_end_date(chat.end_date, chat.group_id, &state.db).await {
+                    Ok(_) => {
+                        valid_temp_chats.push(chat);
+                    },
+                    Err(_) => {}
+                }
+            }
+            let temp_chats = valid_temp_chats;
+            
+            let temp_chats_data = temp_chats.iter().map(|t| {
+                json!({
+                    "temp_chat_key": t.temp_chat_key,
+                    "group_id": t.group_id,
+                    "end_date": t.end_date.to_rfc3339(),
+                    "name": t.name,
+                })
+            }).collect::<Vec<_>>();
+            
+            
+            (StatusCode::OK, Json(temp_chats_data)).into_response()
+        },
+        Err(err) => {
+            eprintln!("Database error: {}", err);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Failed to fetch temp chats" }))).into_response()
+        }
+    }
 }
 
 async fn create_group_chat(
     State(state): State<Arc<ServerState>>,
     extract::Json(form): extract::Json<CreateTempGroupForm>
 ) -> impl IntoResponse {
+
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    let user_id = match validate_token(&form.token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({ "error": "Invalid token" })),
+            )
+        }
+    };
+
     let unique_id = Uuid::new_v4().to_string();
     let end_date = match form.end_date.parse::<DateTime<Utc>>() {
         Ok(end_date) => end_date,
@@ -33,9 +99,12 @@ async fn create_group_chat(
             );
         }
     };
-
-    let chat_key = match create_temp_chat(unique_id, form.group_name, end_date, form.password, &state.db).await {
-        Ok(chat_key) => chat_key,
+ match create_temp_chat(unique_id, form.group_name, end_date, form.password, user_id, &state.db).await {
+        Ok(result) => {
+            let chat_key = result.0;
+            let group_id = result.1;
+            return (StatusCode::OK, 
+                Json(json!({"message": "Group Created", "chat_key": chat_key, "group_id": group_id})))},
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -43,7 +112,7 @@ async fn create_group_chat(
             );
         }
     };
-    (StatusCode::OK, Json(json!({"message": "Group Created", "chat_key": chat_key})))
+
 }   
 
 async fn has_password (    
@@ -117,7 +186,7 @@ async fn get_group_info(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Json(json!({"message": "Internal Server Error"})),
                     ).into_response();
-                }
+                } 
             }
 
             if temp_chat_info.password.is_some() {

@@ -8,6 +8,7 @@ pub struct CreateTempGroupForm {
     #[serde(rename = "endDate")]
     pub end_date: String,
     pub password: Option<String>,
+    pub token: String,
 }
 
 pub struct TempGroupsInfo {

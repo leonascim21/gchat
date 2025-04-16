@@ -21,6 +21,7 @@
     - [Get Temporary Group Info](#temp-groupget-group-info)
     - [Check if Group has a Password](#temp-grouphas-password)
     - [Create Temprorary Group Chat](#temp-groupcreate)
+    #### TODO: write /temp-group/get documentation
 7.  [Friend Endpoints](#friend-endpoints)
     - [Get Friends](#friendget)
     - [Remove Friend](#frienddelete)
