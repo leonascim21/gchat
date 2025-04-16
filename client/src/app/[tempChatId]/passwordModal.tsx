@@ -42,11 +42,14 @@ export default function PasswordModal({ handleSubmit }: Props) {
           continue.
         </DialogDescription>
         <form
-          onSubmit={(e) => submitForm(e.currentTarget.password.value)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitForm(e.currentTarget.password.value);
+          }}
           className="flex flex-col gap-4"
         >
           <Input
-            type="text"
+            type="password"
             name="password"
             placeholder="Password"
             className="w-full"
@@ -55,7 +58,9 @@ export default function PasswordModal({ handleSubmit }: Props) {
           <Button className="w-fit mx-auto" type="submit" disabled={isLoading}>
             {isLoading ? "..." : "Submit"}
           </Button>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <p className="text-red-500 text-sm justify-center flex">{error}</p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

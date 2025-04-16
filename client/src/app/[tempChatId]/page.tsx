@@ -3,16 +3,25 @@ import { useEffect, useState } from "react";
 import Chat from "../_components/chat";
 import { useRouter, useParams } from "next/navigation";
 import axios from "axios";
-import { Group, User } from "../fetchData";
+import { User } from "../fetchData";
 import PasswordModal from "./passwordModal";
-import { set } from "zod";
+import Ping from "../_components/ping";
+
+interface Response {
+  chat_key: string;
+  group_id: number;
+  end_date: string;
+  name: string;
+}
 
 export default function TemporaryChat() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [group, setGroup] = useState<Group | null>(null);
+  const [groupInfo, setGroupInfo] = useState<Response | null>(null);
   const [isPasswordProtected, setIsPasswordProtected] = useState(true);
-  const [endTimestamp, setEndTimestamp] = useState<number | null>(null);
+  const [password, setPassword] = useState<string | undefined>(undefined);
+  const [connected, setConnected] = useState(false);
+
   const router = useRouter();
   const params = useParams();
   const { tempChatId } = params;
@@ -32,21 +41,16 @@ export default function TemporaryChat() {
       });
 
     axios
-      .get(
-        `https://api.gchat.cloud/group/temp-chat-password?token=${token}&temp=${tempChatId}`
-        //RETURN BOOL
-      )
+      .get(`https://api.gchat.cloud/temp-group/has-password?temp=${tempChatId}`)
       .then((response) => {
-        if (!response.data.password_protected) {
+        if (!response.data.has_password) {
           setIsPasswordProtected(false);
           axios
             .get(
-              `https://api.gchat.cloud/group/get-temp-chat?token=${token}&temp=${tempChatId}`
-              //RETURN GROUP + END_DATE TIMESTAMP
+              `https://api.gchat.cloud/temp-group/get-group-info?token=${token}&temp=${tempChatId}`
             )
             .then((response) => {
-              setGroup(response.data.group);
-              setEndTimestamp(response.data.end_date);
+              setGroupInfo(response.data);
               setIsLoading(false);
             })
             .catch(() => {
@@ -57,7 +61,7 @@ export default function TemporaryChat() {
           setIsLoading(false);
         }
       })
-      .catch(() => {
+      .catch((error) => {
         router.push("/");
       });
   }, []);
@@ -68,23 +72,26 @@ export default function TemporaryChat() {
       router.push("/");
     }
 
-    axios
+    let response = await axios
       .get(
-        `https://api.gchat.cloud/group/get-temp-chat?token=${token}&temp=${tempChatId}&password=${password}`
+        `https://api.gchat.cloud/temp-group/get-group-info?password=${password}&temp=${tempChatId}`
       )
       .then((response) => {
-        setGroup(response.data.group);
-        setEndTimestamp(response.data.end_date);
+        setGroupInfo(response.data);
+        setPassword(password);
         setIsPasswordProtected(false);
       })
       .catch((error) => {
-        if (error.status === 401) {
+        if (error.response.status === 401) {
           return "Invalid password";
         } else {
           router.push("/");
           return "An unexpected error occured";
         }
       });
+    if (response) {
+      return response;
+    }
     return "";
   };
 
@@ -108,13 +115,29 @@ export default function TemporaryChat() {
   return (
     <div className="flex flex-col h-screen justify-center">
       <div className="flex flex-col p-3  items-center justify-center">
-        <h1>{group?.name ?? "undefined"}</h1>
-        <h2 className="text-sm">{endTimestamp}</h2>
+        <h1 className="font-semibold">{groupInfo?.name ?? "undefined"}</h1>
+        <h2 className="text-sm">
+          Chat active until{" "}
+          {groupInfo?.end_date &&
+            new Date(groupInfo.end_date).toLocaleDateString([], {
+              month: "short",
+              day: "numeric",
+            }) +
+              " • " +
+              new Date(groupInfo.end_date).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+        </h2>
+        <Ping connected={connected} />
       </div>
       <Chat
-        groupId={group?.id ?? -1}
+        groupId={groupInfo?.group_id ?? -1}
         user={user}
-        updatePing={() => console.log("h1")}
+        updatePing={(isConnected) => setConnected(isConnected)}
+        tempGroupKey={groupInfo?.chat_key}
+        password={password}
+        isTempChat={true}
       />
     </div>
   );

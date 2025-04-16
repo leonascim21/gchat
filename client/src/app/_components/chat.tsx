@@ -11,9 +11,19 @@ interface Props {
   groupId: number;
   user: User | null;
   updatePing: (isConnected: boolean) => void;
+  isTempChat?: boolean;
+  password?: string;
+  tempGroupKey?: string;
 }
 
-export default function Chat({ user, updatePing, groupId }: Props) {
+export default function Chat({
+  user,
+  updatePing,
+  groupId,
+  password,
+  tempGroupKey,
+  isTempChat,
+}: Props) {
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +41,9 @@ export default function Chat({ user, updatePing, groupId }: Props) {
 
     axios
       .get(
-        `https://api.gchat.cloud/group/get-messages?token=${token}&group_id=${groupId}`
+        isTempChat
+          ? `https://api.gchat.cloud/temp-group/get-messages?group_id=${groupId}&temp=${tempGroupKey}&password=${password}`
+          : `https://api.gchat.cloud/group/get-messages?token=${token}&group_id=${groupId}`
       )
       .then((response) => {
         setMessages(response.data);
@@ -58,7 +70,7 @@ export default function Chat({ user, updatePing, groupId }: Props) {
     if (!token) return;
 
     const ws = new WebSocket(
-      `wss://ws.gchat.cloud/ws/group/${groupId}?token=${token}`
+      `wss://ws.gchat.cloud/ws/group/${groupId}?token=${token}&password=${password}`
     );
     wsRef.current = ws;
 

@@ -66,3 +66,9 @@ export function getIdFromJWT() {
 
   return parseInt(JSON.parse(jsonPayload).sub);
 }
+
+export function convertToEndDate(minutes: number): string {
+  const now = new Date();
+  const futureDate = new Date(now.getTime() + minutes * 60 * 1000);
+  return futureDate.toISOString();
+}

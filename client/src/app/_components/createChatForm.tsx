@@ -36,6 +36,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FormEvent, useState } from "react";
 import axios from "axios";
 import type { Group, Friend } from "../fetchData";
+import { convertToEndDate } from "../utils";
 
 interface CreateGroupResponse {
   group_id: number;
@@ -102,6 +103,29 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
           members: [],
           group_type: 1,
         });
+        closeModal();
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => setIsLoading(false));
+  }
+
+  function createTempGroupChat(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const payload = {
+      groupName: e.currentTarget.groupName.value,
+      password: e.currentTarget.password.value,
+      endDate: convertToEndDate(parseInt(e.currentTarget.duration.value)),
+    };
+    axios
+      .post<CreateGroupResponse>(
+        "https://api.gchat.cloud/temp-group/create",
+        payload
+      )
+      .then(() => {
         closeModal();
       })
       .catch((error) => {
@@ -201,30 +225,40 @@ export default function CreateChatForm({ addGroupChat, friends }: Props) {
                         after selected duration.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="space-y-1">
-                        <Label>Duration</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Duration" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="30">30 minutes</SelectItem>
-                            <SelectItem value="60">1 hour</SelectItem>
-                            <SelectItem value="360">6 hours</SelectItem>
-                            <SelectItem value="1440">1 day</SelectItem>
-                            <SelectItem value="10080">7 days</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label>Set Password (Optional)</Label>
-                        <Input id="new" type="password" />
-                      </div>
+                    <CardContent>
+                      <form
+                        className="space-y-2"
+                        onSubmit={(e) => createTempGroupChat(e)}
+                      >
+                        <div className="space-y-1">
+                          <Label>Duration</Label>
+                          <Select name="duration">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Duration" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5 minutes</SelectItem>
+                              <SelectItem value="30">30 minutes</SelectItem>
+                              <SelectItem value="60">1 hour</SelectItem>
+                              <SelectItem value="360">6 hours</SelectItem>
+                              <SelectItem value="1440">1 day</SelectItem>
+                              <SelectItem value="10080">7 days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Group Name</Label>
+                          <Input name="groupName" type="group_name" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Set Password (Optional)</Label>
+                          <Input name="password" type="password" />
+                        </div>
+                        <Button type="submit" disabled={isLoading}>
+                          {isLoading ? "..." : "Create Chat"}
+                        </Button>
+                      </form>
                     </CardContent>
-                    <CardFooter>
-                      <Button>Create Chat</Button>
-                    </CardFooter>
                   </Card>
                 </TabsContent>
               </Tabs>
