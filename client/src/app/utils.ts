@@ -1,3 +1,5 @@
+import crypto, { pbkdf2Sync } from "crypto";
+
 export function usernameToColor(username: string): string {
   let hash = 0;
 
@@ -71,4 +73,22 @@ export function convertToEndDate(minutes: number): string {
   const now = new Date();
   const futureDate = new Date(now.getTime() + minutes * 60 * 1000);
   return futureDate.toISOString();
+}
+
+export function deriveEncryptionKey(password: string, salt: string) {
+  return pbkdf2Sync(password, salt, 100000, 32, "sha256");
+}
+
+export function encryptMessage(message: string, key: Buffer) {
+  const cipher = crypto.createCipheriv("aes-256-ecb", key, Buffer.alloc(0));
+  const part1 = cipher.update(message, "utf8", "hex");
+  const part2 = cipher.final("hex");
+  return part1 + part2;
+}
+
+export function decryptMessage(encryptedMessage: string, key: Buffer) {
+  const decipher = crypto.createDecipheriv("aes-256-ecb", key, Buffer.alloc(0));
+  let decryptedMessage = decipher.update(encryptedMessage, "hex", "utf8");
+  decryptedMessage += decipher.final("utf8");
+  return decryptedMessage;
 }

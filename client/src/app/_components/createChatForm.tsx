@@ -288,6 +288,10 @@ export default function CreateChatForm({
                           <div className="space-y-1">
                             <Label>Set Password (Optional)</Label>
                             <Input name="password" type="password" />
+                            <p className="text-sm dark:text-gray-600 text-gray-400">
+                              Temporary groups with a password are end-to-end
+                              encrypted
+                            </p>
                           </div>
                           <Button type="submit" disabled={isLoading}>
                             {isLoading ? "..." : "Create Chat"}

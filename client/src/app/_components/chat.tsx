@@ -1,12 +1,18 @@
 import { Card } from "@/components/ui/card";
 import type { Message, User } from "../fetchData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { usernameToColor } from "../utils";
+import {
+  decryptMessage,
+  deriveEncryptionKey,
+  encryptMessage,
+  usernameToColor,
+} from "../utils";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import axios from "axios";
+
 interface Props {
   groupId: number;
   user: User | null;
@@ -27,6 +33,7 @@ export default function Chat({
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const keyRef = useRef<Buffer | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -39,6 +46,12 @@ export default function Chat({
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    let key: Buffer | null = null;
+    if (password) {
+      key = deriveEncryptionKey(password, tempGroupKey ?? "");
+      keyRef.current = key;
+    }
+
     axios
       .get(
         isTempChat
@@ -46,7 +59,18 @@ export default function Chat({
           : `https://api.gchat.cloud/group/get-messages?token=${token}&group_id=${groupId}`
       )
       .then((response) => {
-        setMessages(response.data);
+        if (key) {
+          console.log("flag1");
+          const messages = [];
+          for (const message of response.data) {
+            message.content = decryptMessage(message.content, key);
+            messages.push(message);
+          }
+          setMessages(messages);
+        } else {
+          console.log("flag3");
+          setMessages(response.data);
+        }
       })
       .catch((error) => console.log(error))
       .finally(() => setIsLoading(false));
@@ -55,9 +79,13 @@ export default function Chat({
   const sendMessage = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const inputMessage = e.currentTarget.inputMessage.value;
+    let inputMessage = e.currentTarget.inputMessage.value;
 
     if (inputMessage.trim() && wsRef.current) {
+      if (keyRef.current) {
+        console.log("flag2");
+        inputMessage = encryptMessage(inputMessage, keyRef.current);
+      }
       wsRef.current.send(inputMessage);
       e.currentTarget.reset();
     }
@@ -81,7 +109,15 @@ export default function Chat({
     };
 
     ws.onmessage = (event) => {
-      setMessages((prev) => [...prev, JSON.parse(event.data)]);
+      if (keyRef.current) {
+        console.log("flag4");
+        const message = JSON.parse(event.data);
+        message.content = decryptMessage(message.content, keyRef.current);
+        setMessages((prev) => [...prev, message]);
+      } else {
+        console.log("flag5");
+        setMessages((prev) => [...prev, JSON.parse(event.data)]);
+      }
     };
 
     ws.onclose = () => {
