@@ -14,7 +14,6 @@ import {
 import { Dice5, Settings } from "lucide-react";
 import { User } from "../fetchData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
