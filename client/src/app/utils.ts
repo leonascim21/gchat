@@ -81,9 +81,9 @@ export function deriveEncryptionKey(password: string, salt: string) {
 
 export function encryptMessage(message: string, key: Buffer) {
   const cipher = crypto.createCipheriv("aes-256-ecb", key, Buffer.alloc(0));
-  const part1 = cipher.update(message, "utf8", "hex");
-  const part2 = cipher.final("hex");
-  return part1 + part2;
+  let encryptedMessage = cipher.update(message, "utf8", "hex");
+  encryptedMessage += cipher.final("hex");
+  return encryptedMessage;
 }
 
 export function decryptMessage(encryptedMessage: string, key: Buffer) {

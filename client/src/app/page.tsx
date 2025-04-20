@@ -245,7 +245,16 @@ export default function Home() {
               </div>
               <div className="flex flex-row items-center gap-4">
                 <TooltipProvider delayDuration={0}>
-                  <SettingsModal />
+                  <SettingsModal
+                    user={
+                      user ?? {
+                        username: "",
+                        profile_picture: "",
+                        email: "",
+                        id: -1,
+                      }
+                    }
+                  />
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button onClick={logOut}>
