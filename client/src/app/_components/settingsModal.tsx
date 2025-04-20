@@ -23,10 +23,6 @@ interface Props {
 }
 
 export default function SettingsModal({ user }: Props) {
-  const [isEditEmail, setIsEditEmail] = useState(false);
-  const [isEditUsername, setIsEditUsername] = useState(false);
-  const [isEditPassword, setIsEditPassword] = useState(false);
-
   return (
     <Dialog>
       <DialogTrigger asChild>
