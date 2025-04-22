@@ -97,7 +97,10 @@ export default function CreateChatForm({
       memberIds: selectedMemberIds,
     };
     axios
-      .post<CreateGroupResponse>("http://localhost:3001/group/create", payload)
+      .post<CreateGroupResponse>(
+        "https://api.gchat.cloud/group/create",
+        payload
+      )
       .then((response) => {
         addGroupChat({
           id: response.data.group_id,
@@ -236,7 +239,8 @@ export default function CreateChatForm({
                       <CardTitle>Start Temporary Chat</CardTitle>
                       <CardDescription>
                         Only accessible by link and password and self-deletes
-                        after selected duration.
+                        after selected duration. Temporary Chats are end-to-end
+                        encrypted
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -286,12 +290,8 @@ export default function CreateChatForm({
                             <Input name="groupName" type="group_name" />
                           </div>
                           <div className="space-y-1">
-                            <Label>Set Password (Optional)</Label>
-                            <Input name="password" type="password" />
-                            <p className="text-sm dark:text-gray-600 text-gray-400">
-                              Temporary groups with a password are end-to-end
-                              encrypted
-                            </p>
+                            <Label>Set Password</Label>
+                            <Input name="password" type="password" required />
                           </div>
                           <Button type="submit" disabled={isLoading}>
                             {isLoading ? "..." : "Create Chat"}

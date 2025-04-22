@@ -22,6 +22,7 @@
     - [Check if Group has a Password](#temp-grouphas-password)
     - [Create Temprorary Group Chat](#temp-groupcreate)
     #### TODO: write /temp-group/get documentation
+    #### ALTER DOCS PASSWORD REQUIRED ON TEMP CHATS
 7.  [Friend Endpoints](#friend-endpoints)
     - [Get Friends](#friendget)
     - [Remove Friend](#frienddelete)

@@ -16,7 +16,6 @@ pub fn router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/get-messages", get(get_group_messages))
         .route("/get-group-info", get(get_group_info))
-        .route("/has-password", get(has_password))
         .route("/create", post(create_group_chat))
         .route("/get", get(get_temp_groups_for_user))
 }
@@ -115,52 +114,6 @@ async fn create_group_chat(
 
 }   
 
-async fn has_password (    
-    State(state): State<Arc<ServerState>>,
-    Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
-    let temp_chat_key = params.get("temp");
-    let temp_chat_key = match temp_chat_key {
-        Some(temp_chat_key) => temp_chat_key.parse::<String>().unwrap(),
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED, Json(json!({ "error": "Missing chat key" })),
-            ).into_response();
-        }
-    };
-
-    let temp_chat_info = match fetch_temp_chat(temp_chat_key, &state.db).await {
-        Ok(temp_chat_info) => temp_chat_info,
-        Err(err) => {
-            eprintln!("Database error: {}", err);
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Failed to fetch chat info" })),
-            ).into_response();
-        }
-    };
-
-    match check_end_date(temp_chat_info.end_date, temp_chat_info.group_id, &state.db).await {
-        Ok(_) => {}
-        Err(_) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message": "Internal Server Error"})),
-            ).into_response();
-        }
-    }
-    
-    if temp_chat_info.password.is_some() {
-        return (
-            StatusCode::OK, Json(json!({ "has_password": true })),
-        ).into_response();
-    }
-    return (
-        StatusCode::OK, Json(json!({ "has_password": false })),
-    ).into_response();
-
-}
-
 async fn get_group_info(
     State(state): State<Arc<ServerState>>,
     Query(params): Query<HashMap<String, String>>,
@@ -189,22 +142,22 @@ async fn get_group_info(
                 } 
             }
 
-            if temp_chat_info.password.is_some() {
-                let password = params.get("password");
-                let password = match password {
-                    Some(password) => password.parse::<String>().unwrap(),
-                    None => {
-                        return (
-                            StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" })),
-                        ).into_response();
-                    }
-                };
-                if !(verify(password, &temp_chat_info.password.unwrap()).unwrap_or(false)) {
+
+            let password = params.get("password");
+            let password = match password {
+                Some(password) => password.parse::<String>().unwrap(),
+                None => {
                     return (
                         StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" })),
                     ).into_response();
                 }
+            };
+            if !(verify(password, &temp_chat_info.password).unwrap_or(false)) {
+                return (
+                    StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" })),
+                ).into_response();
             }
+        
             return (
                 StatusCode::OK, Json(json!({
                     "chat_key": temp_chat_info.temp_chat_key,
@@ -261,22 +214,22 @@ async fn get_group_messages(
         }
     }
     
-    if temp_chat_info.password.is_some() {
-        let password = params.get("password");
-        let password = match password {
-            Some(password) => password.parse::<String>().unwrap(),
-            None => {
-                return (
-                    StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" })),
-                ).into_response();
-            }
-        };
-        if !(verify(password, &temp_chat_info.password.unwrap()).unwrap_or(false)) {
+
+    let password = params.get("password");
+    let password = match password {
+        Some(password) => password.parse::<String>().unwrap(),
+        None => {
             return (
                 StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" })),
             ).into_response();
         }
+    };
+    if !(verify(password, &temp_chat_info.password).unwrap_or(false)) {
+        return (
+            StatusCode::UNAUTHORIZED, Json(json!({ "error": "Unauthorized" })),
+        ).into_response();
     }
+    
 
     match fetch_messages(temp_chat_info.group_id, &state.db).await {
         Ok(messages) => {

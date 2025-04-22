@@ -38,32 +38,8 @@ export default function TemporaryChat() {
       })
       .catch(() => {
         router.push("/");
-      });
-
-    axios
-      .get(`https://api.gchat.cloud/temp-group/has-password?temp=${tempChatId}`)
-      .then((response) => {
-        if (!response.data.has_password) {
-          setIsPasswordProtected(false);
-          axios
-            .get(
-              `https://api.gchat.cloud/temp-group/get-group-info?token=${token}&temp=${tempChatId}`
-            )
-            .then((response) => {
-              setGroupInfo(response.data);
-              setIsLoading(false);
-            })
-            .catch(() => {
-              router.push("/");
-            });
-        } else {
-          setIsPasswordProtected(true);
-          setIsLoading(false);
-        }
       })
-      .catch(() => {
-        router.push("/");
-      });
+      .finally(() => setIsLoading(false));
   }, []);
 
   const handlePasswordSubmit = async (password: string) => {

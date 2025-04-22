@@ -20,18 +20,10 @@ pub async fn fetch_temp_chat(chat_key: String, db: &PgPool) -> Result<TempGroups
     .await
 }
 
-pub async fn create_temp_chat(chat_key: String, name: String, end_date: DateTime<Utc>, password: Option<String>, user_id: i32, db: &PgPool) -> Result<(String, i32), sqlx::Error> {
+pub async fn create_temp_chat(chat_key: String, name: String, end_date: DateTime<Utc>, password: String, user_id: i32, db: &PgPool) -> Result<(String, i32), sqlx::Error> {
     let created_group_id = create_group(name, 3, db).await?;
-
-    let password = match password {
-        Some(password) => {if password.is_empty() { None } else { Some(password) }},
-        None => None,
-    };
     
-    let hashed_password = match password {
-        Some(pass) => Some(hash(pass, bcrypt::DEFAULT_COST).unwrap()),
-        None => None,
-    };
+    let hashed_password = Some(hash(password, bcrypt::DEFAULT_COST).unwrap());
     
     let result = sqlx::query!(
         r#"

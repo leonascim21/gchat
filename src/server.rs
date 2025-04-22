@@ -96,7 +96,7 @@ async fn main() {
         .layer(Extension(auth))
         .with_state(state);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("Server running on {}", addr);
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -141,18 +141,17 @@ async fn ws_handler(
             }
         }
 
-        if temp_chat_info.password.is_some() {
-            let password = params.get("password");
-            let password = match password {
-                Some(password) => password.parse::<String>().unwrap(),
-                None => {
-                    return (StatusCode::UNAUTHORIZED, "Missing password").into_response();
-                }
-            };
-            if !(verify(password, &temp_chat_info.password.unwrap()).unwrap_or(false)) {
-                return (StatusCode::UNAUTHORIZED, "Invalid password").into_response();
+        let password = params.get("password");
+        let password = match password {
+            Some(password) => password.parse::<String>().unwrap(),
+            None => {
+                return (StatusCode::UNAUTHORIZED, "Missing password").into_response();
             }
+        };
+        if !(verify(password, &temp_chat_info.password).unwrap_or(false)) {
+            return (StatusCode::UNAUTHORIZED, "Invalid password").into_response();
         }
+        
         return ws.on_upgrade(move |socket: WebSocket| handle_socket(socket, user_id, state, group_id));
     }
 
