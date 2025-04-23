@@ -22,7 +22,7 @@ import { generateProfilePictureSVG } from "../utils";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import StatCard from "./statCard";
+import StatsComponent from "./statsComponent";
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -204,17 +204,7 @@ export default function SettingsModal({ user }: Props) {
             <DialogDescription className="text-center pb-4">
               Fun stats about your activity
             </DialogDescription>
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard title="Messages Sent" stat="100" />
-              <StatCard title="Longest Message Sent" stat="Hello" />
-              <StatCard
-                title="Most Active Day"
-                stat="April 1st 2025, 15 Messages Sent"
-              />
-              <StatCard title="Account Created" stat="October 21st, 2024" />
-              <StatCard title="Favorite Group" stat="grupo legal" />
-              <StatCard title="Best Friend" stat="profilePicTest" />
-            </div>
+            <StatsComponent />
           </TabsContent>
         </Tabs>
       </DialogContent>

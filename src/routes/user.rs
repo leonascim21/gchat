@@ -1,12 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
-use axum::{Extension, extract::Query, http::StatusCode, response::IntoResponse, routing::{get, post}, Form, Json, Router};
+use axum::{extract::{Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post}, Extension, Form, Json, Router};
 use gauth::validate_token;
 use serde_json::json;
 use gauth::models::{Auth, Claims, User};
 use std::time::SystemTime;
 
-use crate::utils::types::{LoginForm, RegisterForm};
+use crate::utils::{queries::fetch_stats, types::{LoginForm, RegisterForm}};
 use crate::state::ServerState;
+
 
 
 
@@ -16,6 +17,7 @@ pub fn router() -> Router<Arc<ServerState>> {
     .route("/register", post(handle_registration))
     .route("/check-token", get(check_token))
     .route("/get-user-info", get(get_user_info))
+    .route("/get-user-stats", get(get_user_stats))
 }
 
 async fn check_token(
@@ -187,4 +189,33 @@ async fn get_user_info(
         )
             .into_response(),
     }
+}
+
+async fn get_user_stats(
+    State(state): State<Arc<ServerState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let token = match params.get("token") {
+        None => {
+            return (StatusCode::UNAUTHORIZED, Json(json!({ "error": "Missing token" }))).into_response()
+        }
+        Some(token) => token,
+    };
+    let jwt_key = std::env::var("JWT_KEY").expect("JWT_KEY must be set");
+    let user_id = match validate_token(token, jwt_key).await {
+        Ok(claims) => claims.sub.parse::<i32>().unwrap(),
+        Err(_) => {
+            return (StatusCode::UNAUTHORIZED,Json(json!({ "error": "Invalid token" }))).into_response()
+        }
+    };
+
+    match fetch_stats(user_id, &state.db).await {
+        Ok(stats) => {
+            return (StatusCode::OK, stats).into_response()
+        }
+        Err(_) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR ,Json(json!({ "error": "Internal Server Error" }))).into_response()
+        }
+    }
+
 }
