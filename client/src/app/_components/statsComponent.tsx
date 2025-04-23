@@ -12,7 +12,7 @@ export default function StatsComponent() {
   const [bestFriend, setBestFriend] = useState("");
 
   useEffect(() => {
-    let token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       return;
